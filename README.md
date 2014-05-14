@@ -22,6 +22,7 @@ Project is still in early stages and currently only works on Ubuntu. The workflo
 - Clone the repository: `git clone https://github.com/karpathy/ulogme.git`
 - `cd` inside and in two separate terminal windows run `./keyfreq.sh` and `./logactivewin.sh`. Both scripts simply listen to your activity live and write log files in `keyfreq` and `activewin` folders. The log files simply contain the unix time stamp and associated data. Leave this recording for a while, then
 - Run `python export_events.py`, which will write JSON files into `render/` directory. The `index.html` file will read these and create your visualizations
+- Go to `render/render_settings.js` and modify the title mappings according to your own preferences. As an example, one rule specifies that if a window title contains "Google Chrome", it should simply all be grouped into category called "Google Chrome". Follow the provided example.
 - Start a webserver inside `render/`, for example using `python -m SimpleHTTPServer` and open a window at the root, probably `http://localhost:8000/`. Enjoy the visualization!
 
 ## TODO
