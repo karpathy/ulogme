@@ -1,0 +1,531 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <title>ulogme</title>
+    <link href='http://fonts.googleapis.com/css?family=Lato:300,400,900' rel='stylesheet' type='text/css'>
+
+    <script src="jquery-1.8.3.min.js"></script>
+    <script src="render_utils.js"></script>
+    <script src="render_settings.js"></script>
+    <script src="d3.min.js" charset="utf-8"></script>
+
+    <style>
+    body {
+      font-family: Impact, Charcoal, sans-serif;
+      color: #333;
+      font-size: 20px;
+      margin: 0;
+      padding: 0;
+    }
+    g {
+     font-size: 14px; 
+     font-family: 'arial';
+    }
+    p {
+      margin: 0;
+      padding: 0;
+    }
+    .tt {
+      font-size: 30px;
+      margin-top: 30px;
+    }
+    .td {
+      font-size: 20px;
+    }
+    #wrap {
+      padding-left: 10px;
+      padding-right: 10px;
+    }
+    #piechart {
+      text-align: center;
+      margin-top: 40px;
+      padding-top: 20px;
+      margin-bottom: 20px;
+      border-top: 1px solid #AAA;
+    }
+    .line {
+      fill: none;
+      stroke: #55F;
+      stroke-width: 1px;
+    }
+    .al {
+      text-align: center;
+      color: #55F;
+    }
+    #keygraph {
+      margin-top: 20px;
+      border-top: 1px solid #AAA;
+    }
+    #keystats {
+      margin-top: 20px;
+    }
+    h2 {
+      text-align: center;
+      margin-bottom: 40px;
+      font-family: 'Lato', sans-serif;
+      font-weight: 300;
+      background-color: #FFA;
+      margin: 0;
+      padding: 20px;
+      box-shadow: 0px 0px 3px 0px #AAA;
+    }
+    h1 {
+      text-align: center;
+      color: #FFF;
+      font-size: 40px;
+      font-weight: normal;
+      background-color: #F55;
+      margin: 0;
+      padding: 20px;
+    }
+    #leftarrow {
+      float: left;
+    }
+    #rightarrow {
+      float: right;
+    }
+    .arrow {
+      font-size: 50px;
+      padding-top: 10px;
+      padding-bottom: 10px;
+      padding-left: 40px;
+      padding-right: 40px;
+      color: #662;
+      cursor: pointer;
+      /* make arrows unselectable, since they are text technically */
+      -webkit-user-select: none;  /* Chrome all / Safari all */
+      -moz-user-select: none;     /* Firefox all */
+      -ms-user-select: none;      /* IE 10+ */
+      -o-user-select: none; /* not yet supported well */
+      user-select: none;   
+    }
+    </style>
+    
+    <script type="application/javascript">
+
+    // builds a dictionary of window title -> color
+    var color_hash = {};
+    function hashMappedTitles(es) {
+      var cc = 0;
+      for(var i=0,N=es.length;i<N;i++) {
+        var e = es[i];
+        var title = e.m;
+        if(!color_hash.hasOwnProperty(title)) {
+          color_hash[title] = "hsl(" + Math.floor((cc+0.5)/etypes.length * 360) + ",100%,60%)";
+          cc++;
+        }
+      }
+    }
+
+    // renders pie chart showing distribution of time spent into #piechart
+    function createPieChart(es) {
+      $("#piechart").empty();
+
+      var stats = [];
+      var tall = 0;
+      for(var j=0;j<etypes.length;j++) {
+        var m = etypes[j];
+        var t = 0;
+        for(var i=0,N=es.length;i<N;i++) {
+          var e = es[i];
+          if(e.m !== m) continue;
+          t += e.dt;
+        }
+        tall += t;
+        dd = {};
+        dd.t = t;
+        dd.m = m;
+        dd.c = color_hash[m];
+        stats.push(dd);
+      }
+      for(var j=0;j<stats.length;j++) {
+        var s = stats[j];
+        s.m = s.m + " (" + Math.floor(s.t/tall*1000)/10.0 + "%)";
+      }
+
+      var w = $(window).width();
+      var h = 500;
+      var r = Math.min(w, h) / 2;
+      labelr = 250.0;
+
+      var div = d3.select("#piechart").append("div");
+      div.append("p").attr("class", "piet").text("Total Time: " + strTimeDelta(tall));
+
+      var arc = d3.svg.arc()
+        .outerRadius(r - 10)
+        .innerRadius(0);
+
+      var pie = d3.layout.pie()
+            .sort(null)
+            .value(function(d) { return d.t; });
+
+      var svg = d3.select("#piechart").append("svg")
+          .attr("width", w)
+          .attr("height", h)
+          .append("g")
+          .attr("transform", "translate(" + w / 2 + "," + h / 2 + ")");
+
+      var g = svg.selectAll(".arc")
+          .data(pie(stats))
+          .enter().append("g")
+          .attr("class", "arc");
+
+      g.append("path")
+          .attr("d", arc)
+          .style("fill", function(d) { return d.data.c; });
+
+      g.append("text")
+        .attr("font-family", "Impact, Charcoal, sans-serif")
+        .attr("font-size", 20)
+        .attr("fill", function(d) { return d.data.c; })
+        .attr("transform", function(d) { 
+          var c = arc.centroid(d);
+          var x = c[0];
+          var y = c[1];
+          var h = Math.sqrt(x*x + y*y);
+          return "translate(" + (x/h * labelr) +  ',' + (y/h * labelr) +  ")"; 
+        })
+        .attr("dy", ".35em")
+        .attr("text-anchor", function(d) {
+              // are we past the center?
+              return (d.endAngle + d.startAngle)/2 > Math.PI ? "end" : "start";
+          })
+        .text(function(d) { return d.data.m; });
+
+    }
+
+    var ft; // final time
+    var t00; // initial time
+    function findMinMaxTime(es) {
+      var fml = true;
+      for(var i=0,N=es.length;i<N;i++) {
+        var e = es[i];
+        if(fml) { t00 = e.t; ft = e.t + e.dt; fml = false; }
+        if(e.t < t00) t00 = e.t;
+        if(e.t + e.dt > ft) ft = e.t + e.dt;
+      }
+    }
+    
+    // creates the main barcode time visualization for all mapped window titles
+    function visualizeEvents(es) {
+      $("#eventvis").empty();
+      for(var k=0;k<etypes.length;k++) {
+        var mt = etypes[k]; // mapped title of this event type
+        visualizeEvent(es, mt);
+      }
+    }
+
+    // window and key events are input
+    // both are sorted in time. do a merge-sort-like thing
+    var key_stats = {};
+    var maxf = 1; // max key frequency
+    function computeKeyStats(ew, ek) {
+      key_stats = {}; // flush
+
+      var i = 0;
+      var j = 0;
+      var ewn = ew.length;
+      var ekn = ek.length;
+      var cur_window = '';
+      maxf = 0;
+      while(i<ewn && j<ekn) {
+        var popw;
+        if(i>=ewn) { popw = false; }
+        else if(j>=ekn) { popw = true; }
+        else {
+          var tw = ew[i].t;
+          var tk = ek[j].t;
+          popw = tw < tk;
+        }
+        if(popw) {
+          // process window event
+          cur_window = ew[i].m;
+          i++;
+        } else {
+          // process key event
+          if(cur_window !== '') {
+            if(key_stats.hasOwnProperty(cur_window)) {
+              var newf = key_stats[cur_window] + ek[j].f;
+              key_stats[cur_window] = newf;
+              if(newf > maxf) { maxf = newf; }
+            } else {
+              key_stats[cur_window] = ek[j].f;
+            }
+          }
+          j++;
+        }
+      }
+    }
+
+    // number of keys pressed in every window type visualization
+    function visualizeKeyStats() {
+      $("#keystats").empty();
+
+      // create input to d3
+      var dts = [];
+      for(var k=0;k<etypes.length;k++) {
+        var m = etypes[k]; // mapped title of this event type
+        var d = {};
+        d.m = m;
+        d.f = key_stats[m];
+        d.c = color_hash[m];
+        dts.push(d);
+      }
+      dts.sort(function(a,b) { return b.f - a.f; });
+
+      var nt = etypes.length;
+
+      // d3js visualize as horizontal bars
+      var div = d3.select("#keystats");
+      var W = 600;
+      var H1 = 30;
+
+      var sx = (W-200) / maxf;
+
+      div.append("div")
+        .append("p")
+        .text("Total number of key strokes");
+
+      var svg = div.append("svg")
+      .attr("width", W)
+      .attr("height", nt * H1);
+
+      var g = svg.selectAll(".b")
+        .data(dts)
+        .enter().append("g")
+        .attr("class", "b");
+      g.append("rect")
+        .attr("x", function(d) { return 0.0; } )
+        .attr("width", function(d) { return d.f * sx; } )
+        .attr("y", function(d,i) { return i * H1; })
+        .attr("height", H1)
+        .attr("fill", function(d) { return d.c; });
+      g.append("text")
+        .attr("transform", function(d, i) { return "translate(" + (d.f * sx + 10) + "," + (i * H1 + 23) + ")"; })
+        .attr("text-anchor", "top")
+        .attr("font-family", "Impact, Charcoal, sans-serif")
+        .attr("font-size", 20)
+        .attr("fill", "#333")
+        .text(function(d) { return d.f + ' ' + d.m; });
+    }
+
+    // simple plot of key frequencies over time
+    function visualizeKeyFreq(es) {
+      $("#keygraph").empty();
+
+      var W = $(window).width() - 40;
+
+      var div = d3.select("#keygraph").append("div");
+      var svg = div.append("svg")
+      .attr("width", W)
+      .attr("height", 100);
+
+      var sx = (ft-t00) / W;
+      var line = d3.svg.line()
+        .x(function(d) { return (d.t -t00) / sx; })
+        .y(function(d) { return 100 - d.f; });
+
+      svg.append("path")
+        .datum(es)
+        .attr("class", "line")
+        .attr("d", line);
+
+      div.append("p").attr("class", "al").text("keystroke frequency");
+    }
+
+    function visualizeEvent(es, filter) {
+
+      var dts = [];
+      var ttot = 0;
+      for(var i=0,N=es.length;i<N;i++) {
+        var e = es[i];
+        if(e.m !== filter) { continue; }
+        if(e.dt < 30) continue; // less than few second event? skip. Not a concentrated activity
+        ttot += e.dt;
+        var d = {};
+        d.x = e.t-t00;
+        d.w = e.dt;
+        d.s = e.s + "(" + strTimeDelta(e.dt) + ")";
+        dts.push(d);
+      }
+      if(ttot < 60*2) return; // less than few minutes of activity. skip
+
+      var c = color_hash[filter];
+      console.log(filter + ' has ' + dts.length + ' events.');
+
+      var div = d3.select("#eventvis").append("div");
+      div.append("p").attr("class", "tt").attr("style", "color:"+c).text(filter);
+      var txt = strTimeDelta(ttot);
+      div.append("p").attr("class", "td").text(txt);
+
+      var W = $(window).width() - 40;
+      var svg = div.append("svg")
+      .attr("width", W)
+      .attr("height", 70);
+
+      var sx = (ft-t00) / W;
+      var g = svg.selectAll(".e")
+        .data(dts)
+        .enter().append("g")
+        .attr("class", "e")
+        .on("mouseover", function(d){return tooltip.style("visibility", "visible").text(d.s);})
+        .on("mousemove", function(){return tooltip.style("top", (event.pageY-10)+"px").style("left",(event.pageX+10)+"px");})
+        .on("mouseout", function(){return tooltip.style("visibility", "hidden");});
+
+      g.append("rect")
+        .attr("x", function(d) { return d.x/sx; } )
+        .attr("width", function(d) { return d.w/sx; } )
+        .attr("y", 0)
+        .attr("height", 50)
+        .attr("fill", function(d) { return c; });
+
+      // and produce little axis numbers along the timeline
+      var times = [];
+      var t = t00;
+      while(t < ft) {
+        times.push(t);
+        t += 3600; // one hour forward!
+      }
+      times.push(ft);
+      var a = svg.selectAll(".a")
+        .data(times)
+        .enter().append("text")
+        .attr("transform", function(d) { return "translate(" + (d-t00)/sx + ",70)"; })
+        .attr("font-family", "'Lato', sans-serif")
+        .attr("font-size", 14)
+        .attr("fill", "#EEE")
+        .text(function(d) { return (new Date(d*1000)).getHours(); } );
+
+    }
+
+    // count up how much every event took
+    var ecounts = {};
+    var etypes = [];
+    function statEvents(es) {
+      var t0 = es[0].t;
+      var ixprev = 0;
+      for(var i=1,N=es.length;i<N;i++) {
+        var e = es[i];
+        var dt = es[i].t - es[ixprev].t; // length of time for last event
+        es[ixprev].dt = dt;
+        var tmap = e.m; // mapped title
+        if(ecounts.hasOwnProperty(tmap)) {
+          ecounts[tmap] += dt;
+        } else {
+          ecounts[tmap] = 0;
+          etypes.push(tmap); // catalogue these in a list
+        }
+        ixprev = i;
+      }
+      es[N-1].dt = 1; // last event we dont know how long lasted. assume 1 second?
+    }
+
+    // map every event to a group name
+    function mapEvents(es) {
+      for(var i=0,N=es.length;i<N;i++) {
+        var e = es[i];
+        e.m = mapwin(e.s);
+      }
+    }
+
+    function writeHeader() {
+      var date0 = new Date(t00*1000);
+      var date1 = new Date(ft*1000);
+      $("#header").html('<h2>' + ppDate(date0) + ' - ' + ppDate(date1) + '</h2>');
+    }
+
+    function fetchAndLoadEvents(json_path) {
+      loaded = false;
+
+      $.getJSON(json_path, function(data){
+        loaded = true;
+        events = data['window_events'];
+        key_events = data['keyfreq_events']
+        mapEvents(events); // assign group names
+        statEvents(events);
+        hashMappedTitles(events);
+        findMinMaxTime(events);
+        visualizeEvents(events);
+        writeHeader();
+        createPieChart(events);
+        computeKeyStats(events, key_events);
+        visualizeKeyStats(); // uses computeKeyStats global output
+        visualizeKeyFreq(key_events);
+      });
+    }
+
+    var events;
+    var key_events;
+    var tooltip;
+    var event_list = [];
+    var loaded = false;
+    var cur_event_id = -1;
+    function start() {
+      
+      tooltip = d3.select("body")
+      .append("div")
+      .style("position", "absolute")
+      .style("z-index", "10")
+      .style("visibility", "hidden")
+      .text("");
+
+      $.getJSON("export_list.json", function(data){
+        event_list = data; // assign to global variable
+        cur_event_id = event_list.length - 1;
+        fetchAndLoadEvents(event_list[cur_event_id].fname); // display latest
+      });
+
+      // setup arrow events
+      $("#leftarrow").click(function() {
+        cur_event_id--;
+        if(cur_event_id < 0) {
+          cur_event_id = 0;
+        } else {
+          fetchAndLoadEvents(event_list[cur_event_id].fname); // display latest
+        }
+      });
+      $("#rightarrow").click(function() {
+        cur_event_id++;
+        if(cur_event_id >= event_list.length) {
+          cur_event_id = event_list.length - 1;
+        } else {
+          fetchAndLoadEvents(event_list[cur_event_id].fname); // display latest
+        }
+      });
+
+      setInterval(redraw, 1000); // in case of window resize, we can redraw
+    }
+
+    // redraw if dirty (due to window resize event)
+    function redraw() {
+      if(!dirty) return;
+      if(!loaded) return;
+      visualizeEvents(events);
+      visualizeKeyFreq(key_events);
+      dirty = false;
+    }
+
+    var dirty = false;
+    $(window).resize(function() {
+      dirty = true;
+    });
+
+    </script>
+  </head>
+  <body onload="start()">
+    <h1>ulogme</h1>
+    <div>
+      <div id="leftarrow" class="arrow">&lt</div>
+      <div id="rightarrow" class="arrow">&gt</div>
+      <div id="header"></div>
+    </div>
+    <div id="wrap">
+      <div id="eventvis"></div>
+      <div id="keygraph"></div>
+      <div id="keystats"></div>
+      <div id="piechart"></div>
+    </div>
+  </body>
+</html>
