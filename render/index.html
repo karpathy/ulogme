@@ -133,6 +133,7 @@
           if(e.m !== m) continue;
           t += e.dt;
         }
+        if(t < 60) continue; // less than 60 seconds spent? skip
         tall += t;
         dd = {};
         dd.t = t;
@@ -147,8 +148,8 @@
 
       var w = $(window).width();
       var h = 500;
-      var r = Math.min(w, h) / 2;
-      labelr = 250.0;
+      var r = Math.min(w, h) / 2 - 50;
+      labelr = 200.0;
 
       var div = d3.select("#piechart").append("div");
       div.append("p").attr("class", "piet").text("Total Time: " + strTimeDelta(tall));
@@ -336,7 +337,7 @@
     }
 
     function visualizeEvent(es, filter) {
-
+      
       var dts = [];
       var ttot = 0;
       for(var i=0,N=es.length;i<N;i++) {
@@ -347,7 +348,7 @@
         var d = {};
         d.x = e.t-t00;
         d.w = e.dt;
-        d.s = e.s + "(" + strTimeDelta(e.dt) + ")";
+        d.s = e.s + " (" + strTimeDelta(e.dt) + ")";
         dts.push(d);
       }
       if(ttot < 60*2) return; // less than few minutes of activity. skip
