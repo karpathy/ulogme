@@ -437,15 +437,15 @@
       for(var i=0,N=es.length;i<N;i++) {
         var e = es[i];
         if(e.m !== filter) { continue; }
-        if(e.dt < 30) continue; // less than few second event? skip. Not a concentrated activity
         ttot += e.dt;
+        if(e.dt < 30) continue; // less than few second event? skip drawing. Not a concentrated activity
         var d = {};
-        d.x = e.t-t00;
+        d.x = e.t - t00;
         d.w = e.dt;
         d.s = e.s + " (" + strTimeDelta(e.dt) + ")";
         dts.push(d);
       }
-      if(ttot < 60*2) return; // less than few minutes of activity. skip
+      if(ttot < 60) return; // less than a minute of activity? skip
 
       var c = color_hash[filter];
       console.log(filter + ' has ' + dts.length + ' events.');
