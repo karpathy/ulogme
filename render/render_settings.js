@@ -25,3 +25,11 @@ function mapwin(w) {
   }
   return w;
 }
+
+// draw notes row?
+var draw_notes = true;
+
+// experimental coffee levels indicator :)
+// looks for notes that mention coffee and shows 
+// levels of coffee in body over time
+var draw_coffee = false;

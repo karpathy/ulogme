@@ -212,8 +212,15 @@
     // creates the main barcode time visualization for all mapped window titles
     function visualizeEvents(es) {
       $("#eventvis").empty();
+
+      var oi = [];
       for(var k=0;k<etypes.length;k++) {
-        var mt = etypes[k]; // mapped title of this event type
+        var mt = etypes[k];
+        oi.push({i:k, c:ecounts[mt]});
+      }
+      oi.sort(function(a,b){return b.c-a.c;});
+      for(var k=0;k<etypes.length;k++) {
+        var mt = etypes[oi[k].i]; // mapped title of this event type
         visualizeEvent(es, mt);
       }
     }
@@ -248,11 +255,14 @@
           // process key event
           if(cur_window !== '') {
             if(key_stats.hasOwnProperty(cur_window)) {
-              var newf = key_stats[cur_window] + ek[j].f;
-              key_stats[cur_window] = newf;
+              var fhere = ek[j].s;
+              var newf = key_stats[cur_window].f + fhere;
+              key_stats[cur_window].f = newf;
+              key_stats[cur_window].n ++;
               if(newf > maxf) { maxf = newf; }
             } else {
-              key_stats[cur_window] = ek[j].f;
+              console.log('adding ' + cur_window + ' to keystats');
+              key_stats[cur_window] = {'f':ek[j].s, 'n':1};
             }
           }
           j++;
@@ -270,7 +280,13 @@
         var m = etypes[k]; // mapped title of this event type
         var d = {};
         d.m = m;
-        d.f = key_stats[m];
+        if(key_stats.hasOwnProperty(m)) {
+          d.f = key_stats[m].f;
+        } else {
+          continue; // an edge case that can sometimes happen
+        }
+        //if(d.f < 1) { continue; }
+        d.fn = Math.floor(100 * d.f / (key_stats[m].n * 9.0))/100.0;
         d.c = color_hash[m];
         dts.push(d);
       }
@@ -290,7 +306,7 @@
         .text("Total number of key strokes");
 
       var svg = div.append("svg")
-      .attr("width", W)
+      .attr("width", "100%")
       .attr("height", nt * H1);
 
       var g = svg.selectAll(".b")
@@ -309,7 +325,7 @@
         .attr("font-family", "Impact, Charcoal, sans-serif")
         .attr("font-size", 20)
         .attr("fill", "#333")
-        .text(function(d) { return d.f + ' ' + d.m; });
+        .text(function(d) { return d.f + ' (' + d.fn + '/s) ' + d.m; });
     }
 
     // simple plot of key frequencies over time
@@ -320,13 +336,13 @@
 
       var div = d3.select("#keygraph").append("div");
       var svg = div.append("svg")
-      .attr("width", W)
+      .attr("width", "100%")
       .attr("height", 100);
 
       var sx = (ft-t00) / W;
       var line = d3.svg.line()
         .x(function(d) { return (d.t -t00) / sx; })
-        .y(function(d) { return 100 - d.f; });
+        .y(function(d) { return 100 - d.s; });
 
       svg.append("path")
         .datum(es)
@@ -336,8 +352,86 @@
       div.append("p").attr("class", "al").text("keystroke frequency");
     }
 
+    function visualizeNotes(es) {
+      $("#notesvis").empty();
+      if(es.length === 0) return; // nothing to do here...
+
+      var coffees = [];
+      var dts= [];
+      for(var i=0,N=es.length;i<N;i++) {
+        var e = es[i];
+        var d = {};
+        d.x = e.t-t00;
+        d.s = e.s;
+        if(e.s.indexOf("coffee")>-1) {
+          // we had coffee
+          coffees.push(e.t-t00);
+        }
+        dts.push(d);
+      }
+
+      console.log('drawing ' + dts.length + ' notes.');
+      var div = d3.select("#notesvis").append("div");
+      div.append("p").attr("class", "tt").attr("style", "color: #964B00").text("Notes");
+      var W = $(window).width() - 40;
+      var svg = div.append("svg")
+      .attr("width", W)
+      .attr("height", 70);
+
+      var sx = (ft-t00) / W;
+
+      // Draw coffee. Overlay
+      // draw_coffee is set in render_settings.js
+      if(draw_coffee) {
+        var coffex = [];
+        var nc = coffees.length;
+        var alpha = Math.log(2)/20520; // 20,520 is half life of coffee, in seconds. Roughly 6 hours
+        for(var i=0;i<100;i++) {
+          there = i*(ft-t00)/100.0;
+          // coffee is assumed to add linearly in the body
+          var amount = 0;
+          for(var j=0;j<nc;j++) {
+            if(there > coffees[j]) {
+              amount += Math.exp(-alpha*(there - coffees[j]));
+            }
+          }
+          coffex.push({t:there, a:30*amount}); // scale is roughly 30px = 150mg coffee, for now
+        }
+        var cdx = (ft - t00)/100.0;
+        var g = svg.selectAll(".c")
+          .data(coffex)
+          .enter()
+          .append("rect")
+          .attr("width", cdx/sx)
+          .attr("x", function(d){ return d.t/sx; })
+          .attr("y", function(d){ return 50-d.a; })
+          .attr("height", function(d){ return d.a; })
+          .attr("fill", "#E4CFBA");
+      }
+
+      // draw notes
+      var g = svg.selectAll(".n")
+        .data(dts)
+        .enter().append("g")
+        .attr("class", "n");
+
+      g.append("rect")
+        .attr("x", function(d) { return d.x/sx; } )
+        .attr("width", 2)
+        .attr("y", 0)
+        .attr("height", 50)
+        .attr("fill", "#964B00");
+
+      g.append("text")
+        .attr("transform", function(d,i) { return "translate(" + (d.x/sx+5) + "," + (10+15*(i%5)) + ")"; })
+        .attr("font-family", "'Lato', sans-serif")
+        .attr("font-size", 14)
+        .attr("fill", "#333")
+        .text(function(d) { return d.s; } );
+    }
+
     function visualizeEvent(es, filter) {
-      
+
       var dts = [];
       var ttot = 0;
       for(var i=0,N=es.length;i<N;i++) {
@@ -411,7 +505,7 @@
         var e = es[i];
         var dt = es[i].t - es[ixprev].t; // length of time for last event
         es[ixprev].dt = dt;
-        var tmap = e.m; // mapped title
+        var tmap = es[ixprev].m; // mapped title of previous events
         if(ecounts.hasOwnProperty(tmap)) {
           ecounts[tmap] += dt;
         } else {
@@ -444,6 +538,7 @@
         loaded = true;
         events = data['window_events'];
         key_events = data['keyfreq_events']
+        notes_events = data['notes_events']
         mapEvents(events); // assign group names
         statEvents(events);
         hashMappedTitles(events);
@@ -454,11 +549,17 @@
         computeKeyStats(events, key_events);
         visualizeKeyStats(); // uses computeKeyStats global output
         visualizeKeyFreq(key_events);
+
+        // draw_notes is set in render_settings.js
+        if(draw_notes) {
+          visualizeNotes(notes_events);
+        }
       });
     }
 
     var events;
     var key_events;
+    var notes_events;
     var tooltip;
     var event_list = [];
     var loaded = false;
@@ -505,6 +606,7 @@
       if(!loaded) return;
       visualizeEvents(events);
       visualizeKeyFreq(key_events);
+      visualizeNotes(notes_events);
       dirty = false;
     }
 
@@ -523,9 +625,10 @@
       <div id="header"></div>
     </div>
     <div id="wrap">
-      <div id="eventvis"></div>
-      <div id="keygraph"></div>
       <div id="keystats"></div>
+      <div id="keygraph"></div>
+      <div id="notesvis"></div>
+      <div id="eventvis"></div>
       <div id="piechart"></div>
     </div>
   </body>
