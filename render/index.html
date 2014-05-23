@@ -225,10 +225,50 @@
       }
     }
 
+    // uses global variable hacking_events as input. Must be set
+    // and global total_hacking_time as well.
+    function visualizeHackingTimes() {
+      $("#hackingvis").empty();
+      if(!draw_hacking) return; // global set in render_settings.js
+
+      var c = "rgb(200,0,0)"; // color
+
+      var div = d3.select("#hackingvis").append("div");
+      div.append("p").attr("class", "tt").attr("style", "color:"+c).text("Hacking Streak");
+      var txt = strTimeDelta(total_hacking_time);
+      txt += " (total intensity = " + total_hacking_itensity + ")";
+      div.append("p").attr("class", "td").text(txt);
+
+      var W = $(window).width() - 40;
+      var svg = div.append("svg")
+      .attr("width", W)
+      .attr("height", 30);
+
+      var sx = (ft-t00) / W;
+      var g = svg.selectAll(".h")
+        .data(hacking_events)
+        .enter().append("g")
+        .attr("class", "h")
+        .on("mouseover", function(d){return tooltip.style("visibility", "visible").text(strTimeDelta(d.dt));})
+        .on("mousemove", function(){return tooltip.style("top", (event.pageY-10)+"px").style("left",(event.pageX+10)+"px");})
+        .on("mouseout", function(){return tooltip.style("visibility", "hidden");});
+
+      g.append("rect")
+        .attr("x", function(d) { return (d.t0-t00)/sx; } )
+        .attr("width", function(d) { return d.dt/sx; } )
+        .attr("y", function(d) {return 30-10*d.intensity} )
+        .attr("height", function(d) {return 10*d.intensity; })
+        .attr("fill", function(d) { return c; });
+
+    }
+
     // window and key events are input
     // both are sorted in time. do a merge-sort-like thing
     var key_stats = {};
     var maxf = 1; // max key frequency
+    var hacking_events = [];
+    var total_hacking_time = 0;
+    var total_hacking_intensity = 0;
     function computeKeyStats(ew, ek) {
       key_stats = {}; // flush
 
@@ -237,7 +277,35 @@
       var ewn = ew.length;
       var ekn = ek.length;
       var cur_window = '';
+      var curwi = -1;
       maxf = 0;
+      var hacking_title = false;
+      var hacking_counter = 0;
+      var hacking_reset_counter = 0;
+      hacking_events = []; // reset this
+      total_hacking_time = 0; // global
+      total_hacking_itensity = 0; // global
+      var hacking_now = false;
+      var hacking_start = -1;
+      var hacking_f_accum = 0;
+
+      var end_hacking = function(t) { // helper fun
+        if(hacking_now) {
+          // we were hacking and now it ended. record the session
+          var h = {};
+          h.t0 = hacking_start;
+          h.t1 = t;
+          h.dt = h.t1 - h.t0; // convenience
+          h.intensity = hacking_f_accum / h.dt; // key strokes per second ;p
+          total_hacking_time += h.dt;
+          total_hacking_itensity += hacking_f_accum;
+          hacking_events.push(h);
+        }
+        hacking_now = false; // and reset tracking vars
+        hacking_counter = 0;
+        hacking_reset_counter = 0;
+        hacking_f_accum = 0;
+      }
       while(i<ewn && j<ekn) {
         var popw;
         if(i>=ewn) { popw = false; }
@@ -248,26 +316,65 @@
           popw = tw < tk;
         }
         if(popw) {
-          // process window event
+          
+          // process new window event
           cur_window = ew[i].m;
+          curwi = i;
+
+          // hacking titles are set in render_settings.js
+          hacking_title = hacking_titles.indexOf(cur_window) > -1;
           i++;
         } else {
           // process key event
           if(cur_window !== '') {
+            var fhere = ek[j].s;
             if(key_stats.hasOwnProperty(cur_window)) {
-              var fhere = ek[j].s;
               var newf = key_stats[cur_window].f + fhere;
               key_stats[cur_window].f = newf;
               key_stats[cur_window].n ++;
               if(newf > maxf) { maxf = newf; }
             } else {
-              console.log('adding ' + cur_window + ' to keystats');
-              key_stats[cur_window] = {'f':ek[j].s, 'n':1};
+              key_stats[cur_window] = {'f':fhere, 'n':1};
+            }
+
+            // keep track of hacking streaks. Current implementation assumes
+            // that key events are recorded at regular intervals of 9 seconds.
+            // this simplifies a lot of things, but in future may want something
+            // more general.
+            if(hacking_title) {
+              // current active title is a hacking title. accumulate streak
+              if(fhere < 4) {
+                hacking_reset_counter++;
+                if(hacking_reset_counter > 10) {
+                  end_hacking(tk); // way too much time has gone by with no key events. Person is sleeping. This aint hacking!
+                }
+              } else {
+                hacking_reset_counter--;
+                if(hacking_reset_counter < 0) hacking_reset_counter = 0;
+
+                hacking_counter += 1;
+                if(hacking_counter > 20) {
+                  if(!hacking_now) {
+                    // we started hacking. record time
+                    hacking_start = tk;
+                  }
+                  hacking_now = true;
+                }
+                if(hacking_now) {
+                  hacking_f_accum += fhere;
+                }
+              }
+            } else {
+              hacking_reset_counter++;
+              if(hacking_reset_counter > 10) {
+                end_hacking(tk); // way too much time has gone by with no key events. Person is sleeping. This aint hacking!
+              }
             }
           }
           j++;
         }
       }
+      console.log('total hacking time: ' + total_hacking_time + 's');
     }
 
     // number of keys pressed in every window type visualization
@@ -286,7 +393,8 @@
           continue; // an edge case that can sometimes happen
         }
         //if(d.f < 1) { continue; }
-        d.fn = Math.floor(100 * d.f / (key_stats[m].n * 9.0))/100.0;
+        // since keys are recorded every 9 seconds, and we want to display number of form x.xx (so crop precision)
+        d.fn = Math.floor(100 * d.f / (key_stats[m].n * 9.0))/100.0; 
         d.c = color_hash[m];
         dts.push(d);
       }
@@ -319,6 +427,7 @@
         .attr("y", function(d,i) { return i * H1; })
         .attr("height", H1)
         .attr("fill", function(d) { return d.c; });
+        
       g.append("text")
         .attr("transform", function(d, i) { return "translate(" + (d.f * sx + 10) + "," + (i * H1 + 23) + ")"; })
         .attr("text-anchor", "top")
@@ -353,7 +462,9 @@
     }
 
     function visualizeNotes(es) {
+      console.log('number of notes:' + es.length);
       $("#notesvis").empty();
+      if(!draw_notes) return; // draw_notes is set in render_settings.js
       if(es.length === 0) return; // nothing to do here...
 
       var coffees = [];
@@ -438,7 +549,7 @@
         var e = es[i];
         if(e.m !== filter) { continue; }
         ttot += e.dt;
-        if(e.dt < 30) continue; // less than few second event? skip drawing. Not a concentrated activity
+        if(e.dt < 10) continue; // less than few second event? skip drawing. Not a concentrated activity
         var d = {};
         d.x = e.t - t00;
         d.w = e.dt;
@@ -547,13 +658,10 @@
         writeHeader();
         createPieChart(events);
         computeKeyStats(events, key_events);
+        visualizeHackingTimes();
         visualizeKeyStats(); // uses computeKeyStats global output
         visualizeKeyFreq(key_events);
-
-        // draw_notes is set in render_settings.js
-        if(draw_notes) {
-          visualizeNotes(notes_events);
-        }
+        visualizeNotes(notes_events);
       });
     }
 
@@ -607,6 +715,7 @@
       visualizeEvents(events);
       visualizeKeyFreq(key_events);
       visualizeNotes(notes_events);
+      visualizeHackingTimes();
       dirty = false;
     }
 
@@ -628,6 +737,7 @@
       <div id="keystats"></div>
       <div id="keygraph"></div>
       <div id="notesvis"></div>
+      <div id="hackingvis"></div>
       <div id="eventvis"></div>
       <div id="piechart"></div>
     </div>

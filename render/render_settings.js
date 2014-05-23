@@ -17,6 +17,7 @@ function mapwin(w) {
   if(w.indexOf("MATLAB")>-1) w = "Matlab";
   if(w.indexOf("Figure")>-1) w = "Matlab";
   if(w.indexOf("Sublime Text")>-1) w = "Sublime Text 2";
+  if(w.indexOf("TeXworks")>-1) w = "Latex";
   if(w === '__LOCKEDSCREEN') w = "Locked Screen";
   // none of the rules matched? fold into MISC
   if(w === wbefore) {
@@ -25,6 +26,15 @@ function mapwin(w) {
   }
   return w;
 }
+
+// list of titles that classify as "hacking", or being productive in general
+// the main goal of the day is to get a lot of focused sessions of hacking
+// done throughout the day. Windows that arent in this list do not
+// classify as hacking, and they break "streaks" (events of focused hacking)
+// the implementation is currently quite hacky, experimental and contains 
+// many magic numbers.
+var hacking_titles = ["Inotebook", "Terminal", "Matlab", "Sublime Text 2", "Latex"];
+var draw_hacking = false; // by default turning this off
 
 // draw notes row?
 var draw_notes = true;

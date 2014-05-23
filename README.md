@@ -28,7 +28,6 @@ Project is still in early stages and currently only works on Ubuntu. The workflo
 ## TODO
 - **MAC OSX support**. Requires port of functionality in `logactivewin.sh` and `keyfreq.sh` to MAC OSX.
 - Possibly incorporate support for lowres screen snapshots. These can already be logged with `./logdesktop.sh` but are not yet displayed
-- Incorporate support for note taking. Already logged with `./note.sh`, but not yet visualized.
 - Much more visualizations and analysis!
 
 ## License
