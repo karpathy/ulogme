@@ -101,6 +101,27 @@
       -o-user-select: none; /* not yet supported well */
       user-select: none;   
     }
+    #notesinfo {
+      font-size: 16px;
+      font-family: 'arial';
+      background-color: #FFA;
+      border: 1px solid #EE9;
+      padding: 10px;
+      border-radius: 10px;
+      display: none;
+    }
+    #notesinfohide {
+      float: right;
+      font-size: 40px;
+      cursor: pointer;
+      /* make unselectable, since they are text technically */
+      -webkit-user-select: none;  /* Chrome all / Safari all */
+      -moz-user-select: none;     /* Firefox all */
+      -ms-user-select: none;      /* IE 10+ */
+      -o-user-select: none; /* not yet supported well */
+      user-select: none;   
+      color: #AA5;
+    }
     </style>
     
     <script type="application/javascript">
@@ -578,7 +599,8 @@
         .attr("class", "e")
         .on("mouseover", function(d){return tooltip.style("visibility", "visible").text(d.s);})
         .on("mousemove", function(){return tooltip.style("top", (event.pageY-10)+"px").style("left",(event.pageX+10)+"px");})
-        .on("mouseout", function(){return tooltip.style("visibility", "hidden");});
+        .on("mouseout", function(){return tooltip.style("visibility", "hidden");})
+        .on("click", function(d){ $("#notesinfo").show(); $("#notestext").html("clicked event " + d.s + "<br> Add note at time of this event with: <b>./note.sh " + (d.x+t00) + "</b>"); return 0; });
 
       g.append("rect")
         .attr("x", function(d) { return d.x/sx; } )
@@ -687,6 +709,9 @@
         fetchAndLoadEvents(event_list[cur_event_id].fname); // display latest
       });
 
+      // setup notes hide key
+      $("#notesinfohide").click(function(){ $("#notesinfo").hide(); });
+
       // setup arrow events
       $("#leftarrow").click(function() {
         cur_event_id--;
@@ -694,6 +719,7 @@
           cur_event_id = 0;
         } else {
           fetchAndLoadEvents(event_list[cur_event_id].fname); // display latest
+          $("#notesinfo").hide();
         }
       });
       $("#rightarrow").click(function() {
@@ -702,6 +728,7 @@
           cur_event_id = event_list.length - 1;
         } else {
           fetchAndLoadEvents(event_list[cur_event_id].fname); // display latest
+          $("#notesinfo").hide();
         }
       });
 
@@ -736,6 +763,10 @@
     <div id="wrap">
       <div id="keystats"></div>
       <div id="keygraph"></div>
+      <div id="notesinfo">
+        <div id="notesinfohide">X</div>
+        <div id="notestext"></div>
+      </div>
       <div id="notesvis"></div>
       <div id="hackingvis"></div>
       <div id="eventvis"></div>
