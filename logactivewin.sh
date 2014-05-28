@@ -5,8 +5,8 @@
 # the unix time of the change
 
 waittime="2" # number of seconds between executions of loop
-logfile="activewin/log.txt" # output file
-mkdir -p activewin
+logfile="logs/activewin.txt" # output file
+mkdir -p logs
 #------------------------------
 
 lasttitle=""
