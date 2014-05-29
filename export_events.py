@@ -36,19 +36,19 @@ def loadEvents(fname):
   return events
 
 # load all window events
-active_window_file = ROOT + 'activewin/log.txt'
+active_window_file = ROOT + 'logs/activewin.txt'
 print 'loading windows events...'
 wevents = loadEvents(active_window_file)
 
 # load all keypress events
-keyfreq_file = ROOT + 'keyfreq/keyfreq.txt'
+keyfreq_file = ROOT + 'logs/keyfreq.txt'
 print 'loading key frequencies...'
 kevents = loadEvents(keyfreq_file)
 for k in kevents: # convert the key frequency to just be an int, not string
   k['s'] = int(k['s'])
 
 print 'loading notes...'
-notes_file = ROOT + 'notes/notes.txt'
+notes_file = ROOT + 'logs/notes.txt'
 nevents = loadEvents(notes_file)
 
 # coming soon

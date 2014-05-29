@@ -5,11 +5,11 @@
 # 1st column: unix time
 # 2nd column: number of keystrokes during last 9 seconds
 
-mkdir -p keyfreq
+mkdir -p logs
 
 while true
 do
-  showkey > keyfreq/raw.txt &
+  showkey > logs/keyfreqraw.txt &
   PID=$!
   
   # work in windows of 9 seconds 
@@ -17,10 +17,10 @@ do
   kill $PID
   
   # count number of key release events
-  num=`cat keyfreq/raw.txt | grep release | wc -l`
+  num=`cat logs/keyfreqraw.txt | grep release | wc -l`
   
   # append unix time stamp and the number into file
-  echo "$(date +%s) $num"  >> keyfreq/keyfreq.txt
+  echo "$(date +%s) $num"  >> logs/keyfreq.txt
   echo "$(date) $num release events detected"
   
 done
