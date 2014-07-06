@@ -51,7 +51,7 @@
 
     function drawEvents() {
 
-      var margin = {top: 20, right: 10, bottom: 30, left: 40};
+      var margin = {top: 20, right: 10, bottom: 200, left: 40};
       var fullwidth = 1200;
       var fullheight = 800;
       var width = fullwidth - margin.left - margin.right;
@@ -60,9 +60,9 @@
         .attr("width", width + margin.left + margin.right)
         .attr("height", height + margin.top + margin.bottom)
 
-      var yscale = 0.01;
+      var yscale = 0.008;
 
-      // draw axis labels
+      // draw y axis labels
       var yoff = 0;
       var yn = 0;
       while(yoff < height) {
@@ -90,13 +90,27 @@
         .data(etypes)
       .enter()
         .append("text")
-        .attr("transform", function(d, i) { return "translate(" + (10 + wperitem*i) + "," + (height + margin.top + 30) + ")"; })
+        .attr("transform", function(d, i) { return "translate(" + (10 + wperitem*i) + "," + (height + margin.top + 100) + ")"; })
         .attr("fill", function(d){ return color_hash[d]; })
         .text(function(d){ return d; });
 
-      // draw the data
+      // draw x axis labels
       var N = edur.length;
       var dsz = width / N;
+      svg.selectAll('.xlabel')
+        .data(event_list)
+      .enter()
+        .append("text")
+        .attr("transform", function(d, i) {
+          var x = margin.left + i * dsz;
+          var y = height + margin.top + 3;
+          return "translate(" + x + "," + y + ")rotate(90)";})
+        .attr("fill", "#333")
+        .attr("font-family", "arial")
+        .attr("font-size", "14px")
+        .text(function(d) { var dobj = new Date(d.t0 * 1000); return ppDateShort(dobj); })
+
+      // draw the data
       for(var k=0;k<N;k++) {
         // convert from kv to list
         var dtimes = [];

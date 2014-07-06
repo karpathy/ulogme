@@ -17,7 +17,7 @@ function strTimeDelta(secs) {
 // pretty print date in a nice format, utility function
 function ppDate(date) {
   return ['Jan.', 'Feb.', 'Mar.', 
-        'Apr.', 'May', 'Jun.',
+        'Apr.', 'May.', 'Jun.',
         'Jul.', 'Aug.', 'Sep.', 
         'Oct.', 'Nov.', 'Dec.'][date.getMonth()] + " " +
         (function (d) { 
@@ -26,4 +26,11 @@ function ppDate(date) {
         })(date.getDate()) + ", " +
         date.getFullYear() + " " +
         date.getHours() + ":" + ("0" + date.getMinutes()).slice(-2);
+}
+
+function ppDateShort(date) {
+  return date.getDate() + " " + ['Jan', 'Feb', 'Mar', 
+        'Apr', 'May', 'Jun',
+        'Jul', 'Aug', 'Sep', 
+        'Oct', 'Nov', 'Dec'][date.getMonth()];
 }
