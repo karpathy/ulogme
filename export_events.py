@@ -3,6 +3,13 @@ import datetime
 import json
 import os
 import os.path
+import sys
+
+# only json for one file will be recomputed, the file which contains
+# time stamp given in the argument
+FILTER_TIME = 0
+if len(sys.argv) > 1:
+  FILTER_TIME = int(sys.argv[1])
 
 ROOT = ''
 RENDER_ROOT = os.path.join(ROOT, 'render')
@@ -36,19 +43,19 @@ def loadEvents(fname):
   return events
 
 # load all window events
-active_window_file = ROOT + 'logs/activewin.txt'
+active_window_file = os.path.join(ROOT, 'logs/activewin.txt')
 print 'loading windows events...'
 wevents = loadEvents(active_window_file)
 
 # load all keypress events
-keyfreq_file = ROOT + 'logs/keyfreq.txt'
+keyfreq_file = os.path.join(ROOT, 'logs/keyfreq.txt')
 print 'loading key frequencies...'
 kevents = loadEvents(keyfreq_file)
 for k in kevents: # convert the key frequency to just be an int, not string
   k['s'] = int(k['s'])
 
 print 'loading notes...'
-notes_file = ROOT + 'logs/notes.txt'
+notes_file = os.path.join(ROOT, 'logs/notes.txt')
 nevents = loadEvents(notes_file)
 
 # coming soon
@@ -66,15 +73,20 @@ out_list = []
 while curtime < maxt:
   t0 = curtime
   t1 = curtime + 60*60*24 # one day later
-  e1 = [x for x in wevents if x['t'] >= t0 and x['t'] < t1]
-  e2 = [x for x in kevents if x['t'] >= t0 and x['t'] < t1]
-  e3 = [x for x in nevents if x['t'] >= t0 and x['t'] < t1]
-  eout = {'window_events': e1, 'keyfreq_events': e2, 'notes_events': e3}
+
   fout = 'events_%d.json' % (t0, )
   out_list.append({'t0':t0, 't1':t1, 'fname': fout})
-  fwrite = os.path.join(RENDER_ROOT, fout)
-  open(fwrite, 'w').write(json.dumps(eout))
-  print 'wrote ' + fwrite
+
+  # perform filtering if needed
+  if FILTER_TIME == 0 or (t0 <= FILTER_TIME and FILTER_TIME < t1):
+    e1 = [x for x in wevents if x['t'] >= t0 and x['t'] < t1]
+    e2 = [x for x in kevents if x['t'] >= t0 and x['t'] < t1]
+    e3 = [x for x in nevents if x['t'] >= t0 and x['t'] < t1]
+    eout = {'window_events': e1, 'keyfreq_events': e2, 'notes_events': e3}
+    fwrite = os.path.join(RENDER_ROOT, fout)
+    open(fwrite, 'w').write(json.dumps(eout))
+    print 'wrote ' + fwrite
+
   curtime += 60*60*24
 
 fwrite = os.path.join(RENDER_ROOT, 'export_list.json')

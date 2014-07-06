@@ -7,6 +7,7 @@
     <link href='http://fonts.googleapis.com/css?family=Lato:300,400,900' rel='stylesheet' type='text/css'>
 
     <script src="jquery-1.8.3.min.js"></script>
+    <script src="spin.min.js"></script>
     <script src="render_utils.js"></script>
     <script src="render_settings.js"></script>
     <script src="d3.min.js" charset="utf-8"></script>
@@ -121,6 +122,52 @@
       -o-user-select: none; /* not yet supported well */
       user-select: none;   
       color: #AA5;
+    }
+    #reloadbutton {
+      position: absolute;
+      color: white;
+      font-size: 60px;
+      right: 20px;
+      top: 0px;
+      cursor: pointer;
+    }
+    #notesadd {
+      font-weight: bold;
+      font-size: 20px;
+      border: 1px solid #333;
+      cursor: pointer;
+      text-align: center;
+      padding: 5px;
+      width: 100px;
+      background-color: #7E7;
+      border-radius: 5px;
+    }
+    input[type="text"] {
+        font-size: 20px;
+        margin-bottom: 5px;
+        display: block;
+        padding: 5px;
+        border: solid 1px #AA5;
+        width: 500px;
+        color: #333;
+    }
+    #spinnerdiv {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 50px;
+      height: 50px;
+    }
+    #overviewlink {
+      position: absolute;
+      font-size: 30px;
+      top: 25px;
+      right: 100px;
+      font-weight: normal;
+      font-family: 'Lato', sans-serif;
+    }
+    #overviewlink a {
+      color: #FFF;
     }
     </style>
     
@@ -562,6 +609,7 @@
         .text(function(d) { return d.s; } );
     }
 
+    var clicktime;
     function visualizeEvent(es, filter) {
 
       var dts = [];
@@ -600,7 +648,13 @@
         .on("mouseover", function(d){return tooltip.style("visibility", "visible").text(d.s);})
         .on("mousemove", function(){return tooltip.style("top", (event.pageY-10)+"px").style("left",(event.pageX+10)+"px");})
         .on("mouseout", function(){return tooltip.style("visibility", "hidden");})
-        .on("click", function(d){ $("#notesinfo").show(); $("#notestext").html("clicked event " + d.s + "<br> Add note at time of this event with: <b>./note.sh " + (d.x+t00) + "</b>"); return 0; });
+        .on("click", function(d){ 
+          $("#notesinfo").show(); 
+          $("#notesmsg").html("clicked event " + d.s + "<br> Add note at time of this event with: <b>./note.sh " + (d.x+t00) + "</b>, or hit add below.");
+          $("#notetext").focus()
+          clicktime = d.x+t00;
+          return 0; 
+          });
 
       g.append("rect")
         .attr("x", function(d) { return d.x/sx; } )
@@ -632,6 +686,8 @@
     var ecounts = {};
     var etypes = [];
     function statEvents(es) {
+      if(es.length === 0) return;
+
       var t0 = es[0].t;
       var ixprev = 0;
       for(var i=1,N=es.length;i<N;i++) {
@@ -664,6 +720,13 @@
       $("#header").html('<h2>' + ppDate(date0) + ' - ' + ppDate(date1) + '</h2>');
     }
 
+    function startSpinner() {
+      // create a spinner
+      var target = document.getElementById('spinnerdiv');
+      opts = {left:'30px', top:'40px', radius: 10, color: "#FFF" };
+      var spinner = new Spinner(opts).spin(target);
+    }
+
     function fetchAndLoadEvents(json_path) {
       loaded = false;
 
@@ -694,6 +757,7 @@
     var event_list = [];
     var loaded = false;
     var cur_event_id = -1;
+    var clicktime = 0;
     function start() {
       
       tooltip = d3.select("body")
@@ -711,6 +775,40 @@
 
       // setup notes hide key
       $("#notesinfohide").click(function(){ $("#notesinfo").hide(); });
+
+      // setup refresh handler to create a post request to /reload
+      $("#reloadbutton").click(function() {
+
+        startSpinner();
+        $.post("/refresh",
+          {"time" : event_list[cur_event_id].t0},
+          function(data,status){
+            console.log("Data: " + data + "\nStatus: " + status);
+            $("#spinnerdiv").empty();
+            if(data === 'OK') {
+              // everything went well, refresh current view
+              fetchAndLoadEvents(event_list[cur_event_id].fname);
+            }
+        });
+      });
+
+      // set up notes add handler
+      $("#notesadd").click(function() {
+        
+        startSpinner();
+        $.post("/addnote",
+          {"note": $("#notetext").val(), "time": clicktime},
+          function(data,status){
+            console.log("Data: " + data + "\nStatus: " + status);
+            $("#spinnerdiv").empty();
+            if(data === 'OK') {
+              // everything went well, refresh current view
+              $("#notetext").val('') // erase
+              $("#notesinfo").hide(); // take away
+              fetchAndLoadEvents(event_list[cur_event_id].fname);
+            }
+        });
+      });
 
       // setup arrow events
       $("#leftarrow").click(function() {
@@ -754,6 +852,9 @@
     </script>
   </head>
   <body onload="start()">
+    <div id="spinnerdiv"></div>
+    <div id="reloadbutton">&#10226</div>
+    <div id="overviewlink"><a href="overview.html">Overview</a></div>
     <h1>ulogme</h1>
     <div>
       <div id="leftarrow" class="arrow">&lt</div>
@@ -765,7 +866,11 @@
       <div id="keygraph"></div>
       <div id="notesinfo">
         <div id="notesinfohide">X</div>
-        <div id="notestext"></div>
+        <div>
+          <div id="notesmsg"></div>
+          <input type="text" id="notetext">
+          <div id="notesadd">Add</div>
+        </div>
       </div>
       <div id="notesvis"></div>
       <div id="hackingvis"></div>

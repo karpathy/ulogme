@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <title>ulogme</title>
+    <link href='http://fonts.googleapis.com/css?family=Lato:300,400,900' rel='stylesheet' type='text/css'>
+
+    <script src="jquery-1.8.3.min.js"></script>
+    <script src="render_utils.js"></script>
+    <script src="render_settings.js"></script>
+    <script src="d3.min.js" charset="utf-8"></script>
+
+    <style>
+    body {
+      font-family: Impact, Charcoal, sans-serif;
+      color: #333;
+      font-size: 20px;
+      margin: 0;
+      padding: 0;
+    }
+    h1 {
+      text-align: center;
+      color: #FFF;
+      font-size: 40px;
+      font-weight: normal;
+      background-color: #F55;
+      margin: 0;
+      padding: 20px;
+    }
+    #content {
+      margin: 10px;
+    }
+    #wrap {
+      text-align: center;
+    }
+    #indexlink {
+      position: absolute;
+      font-size: 30px;
+      top: 25px;
+      right: 100px;
+      font-weight: normal;
+      font-family: 'Lato', sans-serif;
+    }
+    #indexlink a {
+      color: #FFF;
+    }
+    </style>
+    
+    <script type="application/javascript">
+
+    function drawEvents() {
+
+      var margin = {top: 20, right: 10, bottom: 30, left: 40};
+      var fullwidth = 1200;
+      var fullheight = 800;
+      var width = fullwidth - margin.left - margin.right;
+      var height = fullheight - margin.top - margin.bottom;
+      var svg = d3.select("#content").append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+
+      var yscale = 0.01;
+
+      // draw axis labels
+      var yoff = 0;
+      var yn = 0;
+      while(yoff < height) {
+
+        var yy = (height + margin.top - yoff);
+        svg.append("text")
+          .attr("transform", "translate(1," + (yy-3) + ")")
+          .text(yn + "hr");
+
+        svg.append("line")
+          .attr("x1", 0)
+          .attr("x2", width + margin.left)
+          .attr("y1", yy)
+          .attr("y2", yy)
+          .attr("stroke", "#EEE")
+          .attr("stroke-width", 1);
+
+        yn++;
+        yoff += 3600 * yscale;
+      }
+
+      // draw the legend
+      var wperitem = (fullwidth-20) / (etypes.length);
+      svg.selectAll(".legend")
+        .data(etypes)
+      .enter()
+        .append("text")
+        .attr("transform", function(d, i) { return "translate(" + (10 + wperitem*i) + "," + (height + margin.top + 30) + ")"; })
+        .attr("fill", function(d){ return color_hash[d]; })
+        .text(function(d){ return d; });
+
+      // draw the data
+      var N = edur.length;
+      var dsz = width / N;
+      for(var k=0;k<N;k++) {
+        // convert from kv to list
+        var dtimes = [];
+        for(var i=0;i<etypes.length;i++) {
+          dtimes.push(edur[k].hasOwnProperty(etypes[i]) ? edur[k][etypes[i]] : 0);
+        }
+
+        var gh = 0;
+        svg.selectAll(".day"+k)
+          .data(dtimes)
+        .enter()
+          .append("rect")
+          .attr("width", dsz)
+          .attr("height", function(d) { return d * yscale; })
+          .attr("x", margin.left + k * dsz)
+          .attr("y", function(d) { gh += d; return height + margin.top - gh * yscale; })
+          .attr("fill", function(d, i) { return color_hash[etypes[i]]} );
+      }
+
+      
+
+    }
+
+    // builds a dictionary of window title -> color
+    var color_hash = {};
+    function hashMappedTitles() {
+      var cc = 0;
+      for(var i=0,N=etypes.length;i<N;i++) {
+        var title = etypes[i];
+        color_hash[title] = "hsl(" + Math.floor((cc+0.5)/etypes.length * 360) + ",100%,60%)";
+        cc++;
+      }
+    }
+
+    // enter .m field and build up etypes[]
+    var etypes = []
+    function mapEvents(es) {
+      for(var i=0,N=es.length;i<N;i++) {
+        var e = es[i];
+        e.m = mapwin(e.s);
+        //if(e.m === "Locked Screen") continue; // skip
+        if(etypes.indexOf(e.m) === -1) { etypes.push(e.m); }
+      }
+    }
+
+    function statEvents(es, ecounts) {
+      if(es.length === 0) return; // empty case
+
+      var t0 = es[0].t;
+      var ixprev = 0;
+      for(var i=1,N=es.length;i<N;i++) {
+        var e = es[i];
+        var dt = es[i].t - es[ixprev].t; // length of time for last event
+        es[ixprev].dt = dt;
+        var tmap = es[ixprev].m; // mapped title of previous events
+        if(ecounts.hasOwnProperty(tmap)) {
+          ecounts[tmap] += dt;
+        } else {
+          ecounts[tmap] = 0;
+        }
+        ixprev = i;
+      }
+      es[N-1].dt = 1; // last event we dont know how long lasted. assume 1 second?
+    }
+
+    var edur = []; // stores durations for events for all days. Core structure!
+    function analyzeEvents() {
+      edur = [];
+      for(var k=0;k<events.length;k++) {
+        var es = events[k]['window_events']; // window events for day k
+        mapEvents(es); // assign group names to structure in field .m, build etypes[]
+      }
+      hashMappedTitles(); // build up color hashes for the titles
+      
+      for(var k=0;k<events.length;k++) {
+        edur.push({})
+        var es = events[k]['window_events']; // window events for day k
+        statEvents(es, edur[k]);
+      }
+    }
+
+    function get(url) {
+      // Return a new promise.
+      return new Promise(function(resolve, reject) {
+        // Do the usual XHR stuff
+        var req = new XMLHttpRequest();
+        req.open('GET', url);
+
+        req.onload = function() {
+          // This is called even on 404 etc
+          // so check the status
+          if (req.status == 200) {
+            // Resolve the promise with the response text
+            resolve(req.response);
+          }
+          else {
+            // Otherwise reject with the status text
+            // which will hopefully be a meaningful error
+            reject(Error(req.statusText));
+          }
+        };
+
+        // Handle network errors
+        req.onerror = function() {
+          reject(Error("Network Error"));
+        };
+
+        // Make the request
+        req.send();
+      });
+    }
+
+    function getJSON(url) {
+      // get returns a Promise
+      return get(url).then(JSON.parse).catch(function(err) {
+        console.log("getJSON failed for", url, err);
+        throw err;
+      });
+    }
+
+    var event_list;
+    var events;
+    function start() {
+      
+      getJSON("export_list.json").then(function(days_list) {
+        event_list = days_list; // global variable assign
+        console.log("fetched export_list OK.")
+        return Promise.all(days_list.map(function(x) { return getJSON(x.fname); }));
+      }).then(function(days) {
+        events = days; // global variable assign
+      }).catch(function(err){
+        console.log('some error happened: ' + err);
+      }).then(function() {
+        analyzeEvents(); // all events have been loaded. Analyze!
+        drawEvents(); // and d3js draw!
+      });
+
+    }
+
+    </script>
+  </head>
+  <body onload="start()">
+    <div id="indexlink"><a href="index.html">Single-day View</a></div>
+    <h1>ulogme</h1>
+    <div id="wrap">
+      <div id="content"></div>
+    </div>
+  </body>
+</html>
