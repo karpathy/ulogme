@@ -45,6 +45,9 @@
     #indexlink a {
       color: #FFF;
     }
+    h2 {
+      font-weight: normal;
+    }
     </style>
     
     <script type="application/javascript">
@@ -151,7 +154,7 @@
       for(var i=0,N=es.length;i<N;i++) {
         var e = es[i];
         e.m = mapwin(e.s);
-        //if(e.m === "Locked Screen") continue; // skip
+        if(e.m === "Locked Screen") continue; // skip
         if(etypes.indexOf(e.m) === -1) { etypes.push(e.m); }
       }
     }
@@ -256,6 +259,7 @@
     <div id="indexlink"><a href="index.html">Single-day View</a></div>
     <h1>ulogme</h1>
     <div id="wrap">
+      <h2>Total amount of time per day</h2>
       <div id="content"></div>
     </div>
   </body>

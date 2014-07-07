@@ -794,7 +794,7 @@
 
       // set up notes add handler
       $("#notesadd").click(function() {
-        
+
         startSpinner();
         $.post("/addnote",
           {"note": $("#notetext").val(), "time": clicktime},
@@ -808,6 +808,13 @@
               fetchAndLoadEvents(event_list[cur_event_id].fname);
             }
         });
+      });
+
+      // register enter key in notes as submitting
+      $("#notetext").keyup(function(event){
+        if(event.keyCode == 13){
+          $("#notesadd").click();
+        }
       });
 
       // setup arrow events
