@@ -10,7 +10,7 @@ and use of MISC category as shown in example is encouraged.
 */
 function mapwin(w) {
 
-  bool match = false;
+  var match = false;
   if(w.indexOf("Gmail")>-1) { w = "Gmail"; match = true; }
   if(w.indexOf("Inotebook")>-1) { w = "INotebook"; match = true; }
   if(w.indexOf("Google Chrome")>-1) { w = "Google Chrome"; match = true; }
