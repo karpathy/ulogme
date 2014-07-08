@@ -39,7 +39,11 @@ class CustomHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
       # recompute jsons. We have to pop out to root from render. It's a little ugly
       refresh_time = form.getvalue('time')
       os.chdir(rootdir) # pop out
-      os.system('python export_events.py ' + refresh_time)
+      if refresh_time != '0':
+        os.system('python export_events.py ' + refresh_time)
+      else:
+        os.system('python export_events.py') # reload all events
+        
       os.chdir('render') # pop back to render directory
       result = 'OK'
       

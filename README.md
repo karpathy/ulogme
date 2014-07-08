@@ -23,7 +23,7 @@ See a [live demo here.](http://cs.stanford.edu/people/karpathy/ulogme)
 **To start recording:**
 
 1. Clone the repository: `git clone https://github.com/karpathy/ulogme.git`
-2. `cd` inside and run `./ulogme.sh` (note: this will ask you for sudo authentication which is required for `showkey` command). This will launch two scripts for listening to your keyboard activity and active window and log the activity into log files in the `keyfreq` and `activewin` folders.  The log files simply contain the unix time stamp and associated data.
+2. `cd` inside and run `./ulogme.sh` (note: this will ask you for sudo authentication which is required for `showkey` command). This will launch two scripts for listening to your keyboard activity and active window and log the activity into log files in the `logs` folder. Only the frequency of keystrokes is recorded. Every log file is very simply just the unix time stamp followed by data, one per line.
 
 **Note**, you may need to get some packages on Ubuntu (such as `xdotool` and `wmctrl`). You can simply `sudo apt-get install` both of them. To view the results, proceed as follows:
 
@@ -32,6 +32,12 @@ See a [live demo here.](http://cs.stanford.edu/people/karpathy/ulogme)
 1. Run `python export_events.py`. This will write JSON files into `render/` directory. The `index.html` file inside will later read these to show the visualization
 2. Open `render/render_settings.js` and modify the title mappings according to your own preferences (the input to the `mapwin` function is raw window title. The output should be your desired window categories). As an example, one rule specifies that if a window title contains "Google Chrome", it should simply all be grouped into category called "Google Chrome". Follow the provided example.
 3. Start the web server viewer: `python ulogme_serve.py`, and go to to the provided address )for example `http://localhost:8123`).
+
+### User Interface
+
+The user interface can switch between a single day view and an overview view. The interface also has a refresh button on top right which recomputes and refreshes only the current view.
+
+To recompute all days, go to the Overview page and hit refresh there.
 
 ### Note taking
 

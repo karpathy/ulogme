@@ -29,8 +29,10 @@ function ppDate(date) {
 }
 
 function ppDateShort(date) {
-  return date.getDate() + " " + ['Jan', 'Feb', 'Mar', 
+  var months = ['Jan', 'Feb', 'Mar', 
         'Apr', 'May', 'Jun',
         'Jul', 'Aug', 'Sep', 
-        'Oct', 'Nov', 'Dec'][date.getMonth()];
+        'Oct', 'Nov', 'Dec'];
+  var days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thr', 'Fri', 'Sat'];
+  return days[date.getDay()] + ', ' + date.getDate() + " " + months[date.getMonth()];
 }

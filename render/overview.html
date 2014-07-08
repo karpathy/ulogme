@@ -7,6 +7,7 @@
     <link href='http://fonts.googleapis.com/css?family=Lato:300,400,900' rel='stylesheet' type='text/css'>
 
     <script src="jquery-1.8.3.min.js"></script>
+    <script src="spin.min.js"></script>
     <script src="render_utils.js"></script>
     <script src="render_settings.js"></script>
     <script src="d3.min.js" charset="utf-8"></script>
@@ -48,11 +49,46 @@
     h2 {
       font-weight: normal;
     }
+    #spinnerdiv {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 50px;
+      height: 50px;
+    }
+    #reloadbutton {
+      position: absolute;
+      color: white;
+      font-size: 60px;
+      right: 20px;
+      top: 0px;
+      cursor: pointer;
+    }
+    .line {
+      fill: none;
+      stroke: #55F;
+      stroke-width: 2px;
+    }
+    #keystats {
+      width: 1200px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .al {
+      float: left;
+      font-size: 16px;
+      padding: 0;
+      margin: 0;
+    }
+    .divkeys {
+      height: 16px;
+    }
     </style>
     
     <script type="application/javascript">
 
     function drawEvents() {
+      $("#content").empty();
 
       var margin = {top: 20, right: 10, bottom: 200, left: 40};
       var fullwidth = 1200;
@@ -93,7 +129,7 @@
         .data(etypes)
       .enter()
         .append("text")
-        .attr("transform", function(d, i) { return "translate(" + (10 + wperitem*i) + "," + (height + margin.top + 100) + ")"; })
+        .attr("transform", function(d, i) { return "translate(" + (10 + wperitem*i) + "," + (height + margin.top + 130) + ")"; })
         .attr("fill", function(d){ return color_hash[d]; })
         .text(function(d){ return d; });
 
@@ -132,9 +168,6 @@
           .attr("y", function(d) { gh += d; return height + margin.top - gh * yscale; })
           .attr("fill", function(d, i) { return color_hash[etypes[i]]} );
       }
-
-      
-
     }
 
     // builds a dictionary of window title -> color
@@ -154,7 +187,7 @@
       for(var i=0,N=es.length;i<N;i++) {
         var e = es[i];
         e.m = mapwin(e.s);
-        if(e.m === "Locked Screen") continue; // skip
+        if(e.m === "Locked Screen") continue; // skip: doesnt count as work.
         if(etypes.indexOf(e.m) === -1) { etypes.push(e.m); }
       }
     }
@@ -181,7 +214,8 @@
 
     var edur = []; // stores durations for events for all days. Core structure!
     function analyzeEvents() {
-      edur = [];
+      edur = []; // reset global var
+
       for(var k=0;k<events.length;k++) {
         var es = events[k]['window_events']; // window events for day k
         mapEvents(es); // assign group names to structure in field .m, build etypes[]
@@ -192,6 +226,148 @@
         edur.push({})
         var es = events[k]['window_events']; // window events for day k
         statEvents(es, edur[k]);
+      }
+    }
+
+    function drawKeyEvents() {
+
+      var W = $("#keystats").width();
+      var H = 15;
+      $("#keystats").empty();
+
+      var wmargin = 100;
+
+      var time_bin = 10*60; // in seconds
+      var allkevents = [];
+      var d0s = [];
+      var ktots = [];
+      var maxs = 0;
+      var maxktot = 0;
+      var kevents_global = [];
+      var max_kevents_global = 0;
+      for(var k=0;k<events.length;k++) {
+        var es = events[k]['keyfreq_events']; // window events for day k
+        
+        // get 7am time on this day
+        var d0 = new Date(es[0].t * 1000);
+        d0.setHours(7);
+        d0.setMinutes(0);
+        d0.setSeconds(0);
+        d0.setMilliseconds(0);
+
+        var t00 = d0.getTime() / 1000; // morning at 7am
+        var ft = t00 + 60*60*24; // 7am the next day
+        var kevents = [];
+        var t = t00;
+        while(t <= ft) { 
+          kevents.push(0); t += time_bin; // create time bins
+          if(k===0) { kevents_global.push(0); }
+        } 
+
+        // bucket up the events
+        var ktot = 0;
+        for(var q=0,n=es.length;q<n;q++) {
+          var kw = es[q];
+          var binix = Math.floor((kw.t - t00)/time_bin);
+          var news = kevents[binix] + kw.s;
+          kevents[binix] = news;
+          var newg = kevents_global[binix] + kw.s;
+          if(news > maxs) { maxs = news; }
+
+          kevents_global[binix] = newg;
+          if(newg > max_kevents_global) { max_kevents_global = newg; }
+          
+          ktot += kw.s;
+        }
+        allkevents.push(kevents);
+        d0s.push(d0);
+        ktots.push(ktot);
+        if(ktot > maxktot) { maxktot = ktot; }
+      }
+
+      // draw global key events across all days as line
+      var sx = kevents_global.length;
+      var bar_width = (W - wmargin) / sx;
+      var div = d3.select("#keystats").append("div");
+      var svg = div.append("svg")
+        .attr("width", W)
+        .attr("height", H*2);
+      var line = d3.svg.line()
+        .x(function(d,i) { return (W - 2*wmargin) * i / sx + wmargin; })
+        .y(function(d) { return 2*H - d / max_kevents_global * H * 2; });
+      svg.append("path")
+        .datum(kevents_global)
+        .attr("class", "line")
+        .attr("d", line);
+
+      // draw x axis: times of the day
+      var div = d3.select("#keystats").append("div");
+      var svg = div.append("svg")
+        .attr("width", W)
+        .attr("height", 20);
+      for(var q=0;q<24;q++) {
+        svg.append('text')
+        .attr('font-size', 16)
+        .attr("font-family", "arial")
+        .attr("transform", "translate(" + (q/24*W+2) + ",16)")
+        .text(function(d, i) { return ((q + 7) % 24) + ':00'; });
+
+        svg.append('line')
+        .attr('x1', q/24*W)
+        .attr('x2', q/24*W)
+        .attr('y1', 0)
+        .attr('y2', 20)
+        .attr("stroke", "#000")
+        .attr("stroke-width", 2);
+
+      }
+
+      for(var k=0;k<events.length;k++) {
+
+        var kevents = allkevents[k];
+        var div = d3.select("#keystats").append("div").attr("class", "divkeys");
+
+        var svg = div.append("svg")
+        .attr("width", W)
+        .attr("height", H);
+        var sx = kevents.length;
+
+        svg.selectAll('.ke')
+          .data(kevents)
+        .enter()
+          .append('rect')
+          .attr('x', function(d,i) { return (W - 2*wmargin) * i / sx + wmargin; })
+          .attr('width', bar_width)
+          .attr('y', 0)
+          .attr('height', H)
+          .attr('fill', function(d) {
+            var e = d / maxs;
+            var r = Math.floor(Math.max(0, 255 - e*255));
+            var g = Math.floor(Math.max(0, 255 - e*255));
+            var b = 255;
+            return 'rgb(' + r + ',' + g + ',' + b + ')';
+          });
+
+        // draw y axis: time
+        svg.append('text')
+          .attr("font-size", 14)
+          .attr("transform", "translate(0,12)")
+          .attr("font-family", "arial")
+          .text(ppDateShort(d0s[k]));
+
+        // draw y axis: total number of keys
+        svg.append('rect')
+          .attr('x', W - wmargin + 5)
+          .attr('y', 0)
+          .attr('width', function(d) { return ktots[k]/maxktot * wmargin; })
+          .attr('height', H)
+          .attr('fill', 'rgb(255, 100, 100)');
+
+        svg.append('text')
+          .attr('transform', 'translate(' + (W - wmargin + 7) + ', ' + 13 + ')')
+          .attr('font-size', 14)
+          .attr("font-family", "arial")
+          .text(ktots[k]);
       }
     }
 
@@ -234,10 +410,9 @@
       });
     }
 
-    var event_list;
-    var events;
-    function start() {
-      
+    function loadAllEvents() {
+
+      // load the master json file and all the other jsons
       getJSON("export_list.json").then(function(days_list) {
         event_list = days_list; // global variable assign
         console.log("fetched export_list OK.")
@@ -249,18 +424,54 @@
       }).then(function() {
         analyzeEvents(); // all events have been loaded. Analyze!
         drawEvents(); // and d3js draw!
+        drawKeyEvents(); // draw key events
       });
+    }
 
+    function startSpinner() {
+      // create a spinner
+      var target = document.getElementById('spinnerdiv');
+      opts = {left:'30px', top:'40px', radius: 10, color: "#FFF" };
+      var spinner = new Spinner(opts).spin(target);
+    }
+
+    var event_list;
+    var events;
+    function start() {
+      
+      loadAllEvents();
+
+      $("#reloadbutton").click(function() {
+
+        startSpinner();
+        $.post("/refresh",
+          {"time" : 0},
+          function(data,status){
+            console.log("Data: " + data + "\nStatus: " + status);
+            $("#spinnerdiv").empty();
+            if(data === 'OK') {
+              // everything went well, refresh current view
+              loadAllEvents(); // reload all events
+            }
+        });
+      });
+    
     }
 
     </script>
   </head>
   <body onload="start()">
+    <div id="spinnerdiv"></div>
+    <div id="reloadbutton">&#10226</div>
     <div id="indexlink"><a href="index.html">Single-day View</a></div>
     <h1>ulogme</h1>
     <div id="wrap">
       <h2>Total amount of time per day</h2>
       <div id="content"></div>
+      <h2>Key frequencies during each day</h2>
+      <div id="keystats"></div>
     </div>
+
+    <br><br><br><br>
   </body>
 </html>
