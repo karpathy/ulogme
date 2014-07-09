@@ -245,6 +245,7 @@
       var maxktot = 0;
       var kevents_global = [];
       var max_kevents_global = 0;
+      var sum_kevents_global = 0;
       for(var k=0;k<events.length;k++) {
         var es = events[k]['keyfreq_events']; // window events for day k
         
@@ -276,6 +277,7 @@
 
           kevents_global[binix] = newg;
           if(newg > max_kevents_global) { max_kevents_global = newg; }
+          sum_kevents_global += kw.s;
           
           ktot += kw.s;
         }
@@ -309,12 +311,12 @@
         svg.append('text')
         .attr('font-size', 16)
         .attr("font-family", "arial")
-        .attr("transform", "translate(" + (q/24*W+2) + ",16)")
+        .attr("transform", "translate(" + (q/24*(W-2*wmargin)+2+wmargin) + ",16)")
         .text(function(d, i) { return ((q + 7) % 24) + ':00'; });
 
         svg.append('line')
-        .attr('x1', q/24*W)
-        .attr('x2', q/24*W)
+        .attr('x1', q/24*(W-2*wmargin)+wmargin)
+        .attr('x2', q/24*(W-2*wmargin)+wmargin)
         .attr('y1', 0)
         .attr('y2', 20)
         .attr("stroke", "#000")
@@ -369,6 +371,9 @@
           .attr("font-family", "arial")
           .text(ktots[k]);
       }
+
+      var kevents_global
+      div.append('p').text('total keys pressed: ' + sum_kevents_global + ' in ' + events.length + ' days (' + Math.floor(sum_kevents_global/events.length) + ' per day average)');
     }
 
     function get(url) {

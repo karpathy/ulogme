@@ -663,23 +663,21 @@
         .attr("height", 50)
         .attr("fill", function(d) { return c; });
 
-      // and produce little axis numbers along the timeline
-      var times = [];
-      var t = t00;
+      // produce little axis numbers along the timeline
+      var d0 = new Date(t00 * 1000);
+      d0.setMinutes(0);
+      d0.setSeconds(0);
+      d0.setMilliseconds(0);
+      var t = d0.getTime() / 1000; // cropped hour
       while(t < ft) {
-        times.push(t);
-        t += 3600; // one hour forward!
+        svg.append("text")
+          .attr("transform", "translate(" + [(t-t00)/sx, 70] + ")")
+          .attr("font-family", "'Lato', sans-serif")
+          .attr("font-size", 14)
+          .attr("fill", "#CCC")
+          .text(new Date(t * 1000).getHours());
+        t += 3600;
       }
-      times.push(ft);
-      var a = svg.selectAll(".a")
-        .data(times)
-        .enter().append("text")
-        .attr("transform", function(d) { return "translate(" + (d-t00)/sx + ",70)"; })
-        .attr("font-family", "'Lato', sans-serif")
-        .attr("font-size", 14)
-        .attr("fill", "#EEE")
-        .text(function(d) { return (new Date(d*1000)).getHours(); } );
-
     }
 
     // count up how much every event took
