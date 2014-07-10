@@ -1,4 +1,4 @@
-// various settings for the rendering, to be set by user
+// various settings for the rendering, to be modified by user
 
 /*
 This function takes a raw window title w as string
@@ -13,12 +13,20 @@ function mapwin(w) {
   var match = false;
   if(w.indexOf("Gmail")>-1) { w = "Gmail"; match = true; }
   if(w.indexOf("Inotebook")>-1) { w = "INotebook"; match = true; }
+  if(w.indexOf(".pdf")>-1) { w = "Papers"; match = true; }
   if(w.indexOf("Google Chrome")>-1) { w = "Google Chrome"; match = true; }
   if(w.indexOf("Firefox")>-1) { w = "Google Chrome"; match = true; }
   if(w.indexOf("karpathy@")>-1) { w = "Terminal"; match = true; }
   if(w.indexOf("MATLAB")>-1) { w = "Matlab"; match = true; }
   if(w.indexOf("Figure")>-1) { w = "Matlab"; match = true; }
-  if(w.indexOf("Sublime Text")>-1) { w = "Sublime Text 2"; match = true; }
+  if(w.indexOf("Sublime Text")>-1) { 
+    if (w.indexOf(".js")>-1 || w.indexOf(".py")>-1 || w.indexOf(".html")>-1) {
+      w = "SubText2 Coding"; 
+    } else {
+      w = "SubText2"; 
+    }
+    match = true; 
+  }
   if(w.indexOf("TeXworks")>-1) { w = "Latex"; match = true; }
   if(w === '__LOCKEDSCREEN') { w = "Locked Screen"; match = true; }
   // none of the rules matched? fold into MISC
@@ -29,14 +37,20 @@ function mapwin(w) {
   return w;
 }
 
+var display_groups = [];
+display_groups.push(["Gmail", "Google Chrome", "MISC", "Papers", "SubText2"]); // internet related
+display_groups.push(["Matlab", "SubText2 Coding", "INotebook", "Terminal"]);
+display_groups.push(["TeXworks"]);
+display_groups.push(["Locked Screen"]);
+
 // list of titles that classify as "hacking", or being productive in general
 // the main goal of the day is to get a lot of focused sessions of hacking
 // done throughout the day. Windows that arent in this list do not
 // classify as hacking, and they break "streaks" (events of focused hacking)
 // the implementation is currently quite hacky, experimental and contains 
 // many magic numbers.
-var hacking_titles = ["Inotebook", "Terminal", "Matlab", "Sublime Text 2", "Latex"];
-var draw_hacking = false; // by default turning this off
+var hacking_titles = ["INotebook", "Terminal", "Matlab", "SubText2 Coding"];
+var draw_hacking = true; // by default turning this off
 
 // draw notes row?
 var draw_notes = true;

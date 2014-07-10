@@ -309,7 +309,7 @@
         .attr("height", 20);
       for(var q=0;q<24;q++) {
         svg.append('text')
-        .attr('font-size', 16)
+        .attr('font-size', 14)
         .attr("font-family", "arial")
         .attr("transform", "translate(" + (q/24*(W-2*wmargin)+2+wmargin) + ",16)")
         .text(function(d, i) { return ((q + 7) % 24) + ':00'; });

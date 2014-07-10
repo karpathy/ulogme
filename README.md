@@ -30,7 +30,7 @@ See a [live demo here.](http://cs.stanford.edu/people/karpathy/ulogme)
 **To view results:**
 
 1. Run `python export_events.py`. This will write JSON files into `render/` directory. The `index.html` file inside will later read these to show the visualization
-2. Open `render/render_settings.js` and modify the title mappings according to your own preferences (the input to the `mapwin` function is raw window title. The output should be your desired window categories). As an example, one rule specifies that if a window title contains "Google Chrome", it should simply all be grouped into category called "Google Chrome". Follow the provided example.
+2. Copy `render/render_settings_example.js` to `render/render_settings.js` and modify the title mappings according to your own preferences (the input to the `mapwin` function is raw window title. The output should be your desired window categories). As an example, one rule specifies that if a window title contains "Google Chrome", it should simply all be grouped into category called "Google Chrome". Follow the provided example. The `display_groups` variable dictates which mapped titles will appear together in every row in the visualization.
 3. Start the web server viewer: `python ulogme_serve.py`, and go to to the provided address )for example `http://localhost:8123`).
 
 ### User Interface

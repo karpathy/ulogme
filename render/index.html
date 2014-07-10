@@ -169,6 +169,10 @@
     #overviewlink a {
       color: #FFF;
     }
+    .fdiv {
+      display: inline-block;
+      margin-right: 50px;
+    }
     </style>
     
     <script type="application/javascript">
@@ -281,6 +285,7 @@
     function visualizeEvents(es) {
       $("#eventvis").empty();
 
+      /*
       var oi = [];
       for(var k=0;k<etypes.length;k++) {
         var mt = etypes[k];
@@ -290,6 +295,11 @@
       for(var k=0;k<etypes.length;k++) {
         var mt = etypes[oi[k].i]; // mapped title of this event type
         visualizeEvent(es, mt);
+      }
+      */
+
+      for(var k=0;k<display_groups.length;k++) {
+        visualizeEvent(es, display_groups[k]);
       }
     }
 
@@ -411,7 +421,7 @@
             // more general.
             if(hacking_title) {
               // current active title is a hacking title. accumulate streak
-              if(fhere < 4) {
+              if(fhere < 3) {
                 hacking_reset_counter++;
                 if(hacking_reset_counter > 10) {
                   end_hacking(tk); // way too much time has gone by with no key events. Person is sleeping. This aint hacking!
@@ -421,7 +431,7 @@
                 if(hacking_reset_counter < 0) hacking_reset_counter = 0;
 
                 hacking_counter += 1;
-                if(hacking_counter > 20) {
+                if(hacking_counter > 15) {
                   if(!hacking_now) {
                     // we started hacking. record time
                     hacking_start = tk;
@@ -614,26 +624,42 @@
 
       var dts = [];
       var ttot = 0;
+      var ttoti = [];
+      var filter_colors = [];
+      for(var q=0;q<filter.length;q++) { 
+        filter_colors[q] = color_hash[filter[q]];
+        ttoti.push(0); 
+      }
       for(var i=0,N=es.length;i<N;i++) {
         var e = es[i];
-        if(e.m !== filter) { continue; }
+        var fix = filter.indexOf(e.m);
+        if( fix === -1) { continue; }
         ttot += e.dt;
+        ttoti[fix] += e.dt;
         if(e.dt < 10) continue; // less than few second event? skip drawing. Not a concentrated activity
         var d = {};
         d.x = e.t - t00;
         d.w = e.dt;
         d.s = e.s + " (" + strTimeDelta(e.dt) + ")";
+        d.fix = fix;
         dts.push(d);
       }
       if(ttot < 60) return; // less than a minute of activity? skip
 
-      var c = color_hash[filter];
-      console.log(filter + ' has ' + dts.length + ' events.');
+      console.log('drawing filter ' + filter + ' with ' + dts.length + ' events.');
 
       var div = d3.select("#eventvis").append("div");
-      div.append("p").attr("class", "tt").attr("style", "color:"+c).text(filter);
-      var txt = strTimeDelta(ttot);
-      div.append("p").attr("class", "td").text(txt);
+
+      var filters_div = div.append("div").attr("class", "fsdiv");
+      for(var q=0;q<filter.length;q++) {
+        if(ttoti[q] === 0) continue; // this filter wasnt found
+        
+        var filter_div = filters_div.append("div").attr("class", "fdiv");
+        var c = filter_colors[q];
+        filter_div.append("p").attr("class", "tt").attr("style", "color:"+c).text(filter[q]);
+        var txt = strTimeDelta(ttoti[q]);
+        filter_div.append("p").attr("class", "td").text(txt);
+      }
 
       var W = $(window).width() - 40;
       var svg = div.append("svg")
@@ -661,7 +687,7 @@
         .attr("width", function(d) { return d.w/sx; } )
         .attr("y", 0)
         .attr("height", 50)
-        .attr("fill", function(d) { return c; });
+        .attr("fill", function(d) { return filter_colors[d.fix]; });
 
       // produce little axis numbers along the timeline
       var d0 = new Date(t00 * 1000);
