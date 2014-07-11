@@ -1,4 +1,5 @@
-import sys, os, calendar, time
+import sys, os, time
+from threading import Timer
 from optparse import OptionParser, make_option
 
 from Foundation import NSObject, NSLog
@@ -9,9 +10,9 @@ from PyObjCTools import AppHelper
 
 def current_time():
   """
-  Get a current UNIX timestamp. This is surprisingly awkward in Python.
+  Get a current UNIX timestamp.
   """
-  return calendar.timegm(time.gmtime())
+  return int(time.time())
 
 
 class EventSniffer:
@@ -30,7 +31,6 @@ class EventSniffer:
     self.current_window = None
     self.options = options
     self.num_keystrokes = 0
-    self.last_keystroke_write_time = None
     
   def run(self):
     NSApplication.sharedApplication()
@@ -38,13 +38,13 @@ class EventSniffer:
     NSApp().setDelegate_(delegate)
     self.workspace = NSWorkspace.sharedWorkspace()
     
+    self.write_keystrokes()
     AppHelper.runEventLoop()
 
   def handler(self, event):
     self.maybe_write_current_app()
     if event.type() == NSKeyDown:
       self.num_keystrokes += 1
-      self.maybe_write_keystrokes()
         
   def get_current_app(self):
     running_apps = self.workspace.runningApplications()
@@ -68,14 +68,15 @@ class EventSniffer:
       with open(self.options.active_window_file, 'a') as f:
        f.write('%d %s\n' % (current_time(), self.current_app))
 
-  def maybe_write_keystrokes(self):
-    now = current_time()
-    last = self.last_keystroke_write_time
-    if last is None or last + self.options.keystroke_time < now:
-      with open(self.options.keystroke_file, 'a') as f:
-        f.write('%d %s\n' % (current_time(), self.num_keystrokes))
-      self.num_keystrokes = 0
-      self.last_keystroke_write_time = now
+  def write_keystrokes(self):
+    """
+    Write the number of keystrokes to output file, and schedule
+    another call of this method.
+    """
+    with open(self.options.keystroke_file, 'a') as f:
+      f.write('%d %d\n' % (current_time(), self.num_keystrokes))
+    self.num_keystrokes = 0
+    Timer(self.options.keystroke_time, self.write_keystrokes).start()
 
 
 if __name__ == '__main__':
