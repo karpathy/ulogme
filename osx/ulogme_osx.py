@@ -1,10 +1,10 @@
 import sys, os, calendar, time
 from optparse import OptionParser, make_option
-from threading import Timer
 
 from Foundation import NSObject, NSLog
 from AppKit import NSApplication, NSApp, NSWorkspace
 from Cocoa import *
+from Quartz import CGWindowListCopyWindowInfo, kCGWindowListOptionOnScreenOnly, kCGNullWindowID
 from PyObjCTools import AppHelper
 
 def current_time():
@@ -20,15 +20,17 @@ class EventSniffer:
     _self = self
     class AppDelegate(NSObject):
       def applicationDidFinishLaunching_(self, notification):
-        mask = NSKeyDownMask
+        mask = NSKeyDownMask | NSLeftMouseDownMask | NSRightMouseDownMask | NSScrollWheelMask
         NSEvent.addGlobalMonitorForEventsMatchingMask_handler_(mask, _self.handler)
         NSEvent.addLocalMonitorForEventsMatchingMask_handler_(mask, _self.handler)
     return AppDelegate
   
   def __init__(self, options):
     self.current_app = None
+    self.current_window = None
     self.options = options
     self.num_keystrokes = 0
+    self.last_keystroke_write_time = None
     
   def run(self):
     NSApplication.sharedApplication()
@@ -36,14 +38,13 @@ class EventSniffer:
     NSApp().setDelegate_(delegate)
     self.workspace = NSWorkspace.sharedWorkspace()
     
-    Timer(self.options.active_window_time, self.write_current_app).start()
-    Timer(self.options.keystroke_time, self.write_keystrokes).start()
-
     AppHelper.runEventLoop()
 
   def handler(self, event):
+    self.maybe_write_current_app()
     if event.type() == NSKeyDown:
       self.num_keystrokes += 1
+      self.maybe_write_keystrokes()
         
   def get_current_app(self):
     running_apps = self.workspace.runningApplications()
@@ -51,7 +52,15 @@ class EventSniffer:
       if app.isActive():
         return app.localizedName()
 
-  def write_current_app(self):
+  def get_current_window_name(self):
+    options = kCGWindowListOptionOnScreenOnly
+    window_list = CGWindowListCopyWindowInfo(options, kCGNullWindowID)
+    for window in window_list:
+      if window['kCGWindowOwnerName'] == self.get_current_app():
+        window_name = window['kCGWindowName']
+        return window_name
+
+  def maybe_write_current_app(self):
     current_app = self.get_current_app()
     if current_app != self.current_app:
       # Write the timestamp and current app to file
@@ -59,14 +68,14 @@ class EventSniffer:
       with open(self.options.active_window_file, 'a') as f:
        f.write('%d %s\n' % (current_time(), self.current_app))
 
-    # Schedule this check to happen again
-    Timer(self.options.active_window_time, self.write_current_app).start()
-
-  def write_keystrokes(self):
-    with open(self.options.keystroke_file, 'a') as f:
-      f.write('%d %s\n' % (current_time(), self.num_keystrokes))
-    self.num_keystrokes = 0
-    Timer(self.options.keystroke_time, self.write_keystrokes).start()
+  def maybe_write_keystrokes(self):
+    now = current_time()
+    last = self.last_keystroke_write_time
+    if last is None or last + self.options.keystroke_time < now:
+      with open(self.options.keystroke_file, 'a') as f:
+        f.write('%d %s\n' % (current_time(), self.num_keystrokes))
+      self.num_keystrokes = 0
+      self.last_keystroke_write_time = now
 
 
 if __name__ == '__main__':
