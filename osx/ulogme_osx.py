@@ -105,7 +105,7 @@ if __name__ == '__main__':
       parser.print_help()
       sys.exit(1)
 
-  with open('.python_pid', 'w') as f:
+  with open(options.pid_file, 'w') as f:
     f.write(str(os.getpid()))
 
   app = EventSniffer(options)
