@@ -1,1 +1,4 @@
 render/events_*json
+.env
+logs
+*.swp
