@@ -2,3 +2,4 @@ render/events_*json
 .env
 logs
 *.swp
+.DS_Store
