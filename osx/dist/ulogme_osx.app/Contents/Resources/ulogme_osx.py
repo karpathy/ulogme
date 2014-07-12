@@ -2,7 +2,7 @@ import sys, os, time
 from threading import Timer
 from optparse import OptionParser, make_option
 
-from Foundation import NSObject, NSAppleScript
+from Foundation import NSObject, NSAppleScript, NSTimer
 from AppKit import NSApplication, NSApp, NSWorkspace
 from Cocoa import *
 from Quartz import CGWindowListCopyWindowInfo, kCGWindowListOptionOnScreenOnly, kCGNullWindowID
@@ -33,15 +33,29 @@ class AppDelegate(NSObject):
 
   def applicationDidFinishLaunching_(self, note):
     mask = NSKeyDownMask
-    NSEvent.addGlobalMonitorForEventsMatchingMask_handler_(mask, self.global_event_handler)
-    NSEvent.addLocalMonitorForEventsMatchingMask_handler_(mask, self.local_event_handler)
+    NSEvent.addGlobalMonitorForEventsMatchingMask_handler_(mask, self.event_sniffer.event_handler)
+    NSEvent.addLocalMonitorForEventsMatchingMask_handler_(mask, self.event_sniffer.event_handler)
 
   def applicationActivated_(self, note):
     app =  note.userInfo().objectForKey_('NSWorkspaceApplicationKey')
-    self.app_activated_handler(app.localizedName())
+    self.event_sniffer.set_active_app(app.localizedName())
 
   def screenSleep_(self, note):
-    self.screen_sleep_handler()
+    self.event_sniffer.screen_sleep_handler()
+
+  def writeActiveApp_(self, timer):
+    if DEBUG_APP:
+      print 'Got active app callback at %d' % current_time()
+    self.event_sniffer.write_active_app()
+
+  def writeKeystrokes_(self, timer):
+    if DEBUG_KEYSTROKE:
+      print 'Got keystroke timer tick at %d' % current_time()
+    self.event_sniffer.write_keystrokes()
+
+  def timerCallback_(self, timer):
+    print 'called timerCallback'
+    # print 'called timerCallback at %d' % current_time()
 
 
 class EventSniffer:
@@ -60,12 +74,19 @@ class EventSniffer:
         get URL of active tab of first window
       end tell
       """)
+
+  def start_test_timer(self):
+    NSTimer.scheduledTimerWithTimeInterval_target_selector_userInfo_repeats_(
+        1,
+        self.delegate,
+        'timerCallback:',
+        None,
+        True)
     
   def run(self):
     NSApplication.sharedApplication()
     self.delegate = AppDelegate.alloc().init()
-    self.delegate.global_event_handler = self.event_handler
-    self.delegate.local_event_handler = self.event_handler
+    self.delegate.event_sniffer = self
 
     NSApp().setDelegate_(self.delegate)
 
@@ -73,14 +94,12 @@ class EventSniffer:
     nc = self.workspace.notificationCenter()
 
     # This notification needs OS X v10.6 or later
-    self.delegate.app_activated_handler = self.set_active_app
     nc.addObserver_selector_name_object_(
         self.delegate,
         'applicationActivated:',
         'NSWorkspaceDidActivateApplicationNotification',
         None)
 
-    self.delegate.screen_sleep_handler = self.screen_sleep_handler
     nc.addObserver_selector_name_object_(
         self.delegate,
         'screenSleep:',
@@ -90,9 +109,17 @@ class EventSniffer:
     # I don't think we need to track when the screen comes awake, but in case
     # we do we can listen for NSWorkspaceScreensDidWakeNotification
 
+    # self.start_test_timer()
+
     # Kick off the keystroke and active app loggers
-    self.write_keystrokes()
-    self.write_active_app()
+    NSTimer.scheduledTimerWithTimeInterval_target_selector_userInfo_repeats_(
+        self.options.keystroke_interval, self.delegate, 'writeKeystrokes:', None, True)
+
+    NSTimer.scheduledTimerWithTimeInterval_target_selector_userInfo_repeats_(
+        self.options.active_window_time, self.delegate, 'writeActiveApp:', None, True)
+
+    # self.write_keystrokes()
+    # self.write_active_app()
 
     # Start the application. This doesn't return.
     AppHelper.runEventLoop()
@@ -102,6 +129,8 @@ class EventSniffer:
 
   def event_handler(self, event):
     if event.type() == NSKeyDown:
+      if DEBUG_KEYSTROKE:
+        print 'Got keystroke in %s' % self.current_app
       self.num_keystrokes += 1
 
   def screen_sleep_handler(self):
@@ -154,7 +183,7 @@ class EventSniffer:
 
     # TODO: Timers don't always seem to get called at the correct interval.
     # That's annoying.
-    Timer(self.options.active_window_time, self.write_active_app).start()
+    # Timer(self.options.active_window_time, self.write_active_app).start()
 
   def write_keystrokes(self):
     """
@@ -167,7 +196,7 @@ class EventSniffer:
     with open(self.options.keystroke_file, 'a') as f:
       f.write('%s\n' % s)
     self.num_keystrokes = 0
-    Timer(self.options.keystroke_interval, self.write_keystrokes).start()
+    # Timer(self.options.keystroke_interval, self.write_keystrokes).start()
 
 
 if __name__ == '__main__':
