@@ -24,6 +24,8 @@ def remove_non_ascii(s):
   """
   Dirty hack to replace non-ASCII characters in a string with spaces
   """
+  if s is None:
+    return None
   return ''.join(c if ord(c) < 128 else ' ' for c in s)
 
 
