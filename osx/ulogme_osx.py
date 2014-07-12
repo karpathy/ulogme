@@ -2,7 +2,7 @@ import sys, os, time
 from threading import Timer
 from optparse import OptionParser, make_option
 
-from Foundation import NSObject, NSLog, NSAppleScript, NSDistributedNotificationCenter
+from Foundation import NSObject, NSAppleScript
 from AppKit import NSApplication, NSApp, NSWorkspace
 from Cocoa import *
 from Quartz import CGWindowListCopyWindowInfo, kCGWindowListOptionOnScreenOnly, kCGNullWindowID
@@ -10,7 +10,7 @@ from PyObjCTools import AppHelper
 
 
 DEBUG_KEYSTROKE = False
-DEBUG_APP = True
+DEBUG_APP = False
 
 
 def current_time():
