@@ -8,7 +8,7 @@
 
 mkdir -p logs
 
-DEV=true
+DEV=false
 
 PID_FILE="$(pwd)/.python_pid"
 ACTIVE_WINDOW_FILE="$(pwd)/logs/activewin.txt"
