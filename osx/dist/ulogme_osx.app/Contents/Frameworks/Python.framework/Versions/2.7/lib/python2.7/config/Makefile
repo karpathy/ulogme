@@ -28,8 +28,8 @@ MODLIBS=        $(LOCALMODLIBS) $(BASEMODLIBS)
 VERSION=	2.7
 srcdir=		.
 
-abs_srcdir=	/private/var/tmp/python/python-76.100.1~1/2.7/python
-abs_builddir=	/private/var/tmp/python/python-76.100.1~1/2.7/python
+abs_srcdir=	/private/var/tmp/python/python-76~157/2.7/python
+abs_builddir=	/private/var/tmp/python/python-76~157/2.7/python
 build=		x86_64-apple-darwin13.0
 host=		x86_64-apple-darwin13.0
 
@@ -71,7 +71,7 @@ MAKESETUP=      $(srcdir)/Modules/makesetup
 OPT=		-DNDEBUG -g -fwrapv -Os -Wall -Wstrict-prototypes
 EXTRA_CFLAGS=	 -DENABLE_DTRACE
 BASECFLAGS=	 -fno-strict-aliasing -fno-common -dynamic
-CFLAGS=		$(BASECFLAGS) -arch x86_64 -arch i386 -g -Os -pipe -fno-common -fno-strict-aliasing -fwrapv -DENABLE_DTRACE -DMACOSX -DNDEBUG -Wall -Wstrict-prototypes -Wshorten-64-to-32 $(OPT) $(EXTRA_CFLAGS)
+CFLAGS=		$(BASECFLAGS) -arch x86_64 -arch i386 -g -Os -pipe -fno-common -fno-strict-aliasing -fwrapv -mno-fused-madd -DENABLE_DTRACE -DMACOSX -DNDEBUG -Wall -Wstrict-prototypes -Wshorten-64-to-32 $(OPT) $(EXTRA_CFLAGS)
 # Both CPPFLAGS and LDFLAGS need to contain the shell's value for setup.py to
 # be able to build extension modules using the directories specified in the
 # environment variables
@@ -147,7 +147,7 @@ export MACOSX_DEPLOYMENT_TARGET
 OTHER_LIBTOOL_OPT=
 
 # Environment to run shared python without installed libraries
-RUNSHARED=       DYLD_FRAMEWORK_PATH=/private/var/tmp/python/python-76.100.1~1/2.7/python:
+RUNSHARED=       DYLD_FRAMEWORK_PATH=/private/var/tmp/python/python-76~157/2.7/python:
 
 # Modes for directories, executables and data files created by the
 # install process.  Default to user-only-writable for all file types.
@@ -156,7 +156,7 @@ EXEMODE=	755
 FILEMODE=	644
 
 # configure script arguments
-CONFIG_ARGS=	 '--prefix=/usr' '--mandir=/usr/share/man' '--infodir=/usr/share/info' '--disable-dependency-tracking' '--enable-ipv6' '--with-system-expat' '--with-threads' '--enable-framework=/System/Library/Frameworks' '--enable-toolbox-glue' '--with-system-ffi' 'CC=cc' 'CFLAGS=-arch x86_64 -arch i386 -g -Os -pipe -fno-common -fno-strict-aliasing -fwrapv -DENABLE_DTRACE -DMACOSX -DNDEBUG -Wall -Wstrict-prototypes -Wshorten-64-to-32' 'LDFLAGS=-arch x86_64 -arch i386            -Wl,-F.'
+CONFIG_ARGS=	 '--prefix=/usr' '--mandir=/usr/share/man' '--infodir=/usr/share/info' '--disable-dependency-tracking' '--enable-ipv6' '--with-system-expat' '--with-threads' '--enable-framework=/System/Library/Frameworks' '--enable-toolbox-glue' '--with-system-ffi' 'CC=cc' 'CFLAGS=-arch x86_64 -arch i386 -g -Os -pipe -fno-common -fno-strict-aliasing -fwrapv -mno-fused-madd -DENABLE_DTRACE -DMACOSX -DNDEBUG -Wall -Wstrict-prototypes -Wshorten-64-to-32' 'LDFLAGS=-arch x86_64 -arch i386            -Wl,-F.'
 
 
 # Subdirectories with code
