@@ -3,3 +3,4 @@ render/events_*json
 logs
 *.swp
 .DS_Store
+.python_pid

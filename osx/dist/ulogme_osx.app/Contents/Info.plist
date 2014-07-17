@@ -80,7 +80,7 @@
 		<key>PythonExecutable</key>
 		<string>/usr/bin/python</string>
 		<key>PythonLongVersion</key>
-		<string>2.7.5 (default, Mar  9 2014, 22:15:05) 
+		<string>2.7.5 (default, Aug 25 2013, 00:04:04) 
 [GCC 4.2.1 Compatible Apple LLVM 5.0 (clang-500.0.68)]</string>
 		<key>PythonShortVersion</key>
 		<string>2.7</string>
