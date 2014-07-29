@@ -766,7 +766,8 @@
 
     function fetchAndLoadEvents(daylog) {
       loaded = false;
-      var json_path = daylog.fname;
+      // we do this random thing to defeat caching. Very annoying
+      var json_path = daylog.fname + "?sigh=" + Math.floor(10000*Math.random());
 
       // fill in blog area with blog for this day
       $.getJSON(json_path, function(data){
@@ -816,7 +817,8 @@
       .style("visibility", "hidden")
       .text("");
 
-      $.getJSON("export_list.json", function(data){
+      // we do this random thing to defeat caching. Very annoying
+      $.getJSON("export_list.json?sigh=" + Math.floor(10000*Math.random()), function(data){
         event_list = data; // assign to global variable
         cur_event_id = event_list.length - 1;
         fetchAndLoadEvents(event_list[cur_event_id]); // display latest
