@@ -10,6 +10,7 @@ and use of MISC category as shown in example is encouraged.
 */
 function mapwin(w) {
 
+  // TODO: clean this up, use regex probably
   var match = false;
   if(w.indexOf("Gmail")>-1) { w = "Gmail"; match = true; }
   if(w.indexOf("Inotebook")>-1) { w = "INotebook"; match = true; }
@@ -39,9 +40,9 @@ function mapwin(w) {
 
 var display_groups = [];
 display_groups.push(["Gmail", "Google Chrome", "MISC", "Papers", "SubText2"]); // internet related
-display_groups.push(["Matlab", "SubText2 Coding", "INotebook", "Terminal"]);
-display_groups.push(["TeXworks"]);
-display_groups.push(["Locked Screen"]);
+display_groups.push(["Matlab", "SubText2 Coding", "INotebook", "Terminal"]); // work related
+display_groups.push(["TeXworks"]); // paper writing related
+display_groups.push(["Locked Screen"]); // computer not being used 
 
 // list of titles that classify as "hacking", or being productive in general
 // the main goal of the day is to get a lot of focused sessions of hacking

@@ -173,6 +173,33 @@
       display: inline-block;
       margin-right: 50px;
     }
+    pre {
+      background-color: #F9F9F9;
+      border: 1px solid #CCC;
+      padding: 10px;
+      border-radius: 3px;
+      font-size: 16px;
+    }
+    #blogenter textarea {
+      background-color: #F9F9F9;
+      border: 1px solid #CCC;
+      padding: 10px;
+      border-radius: 3px;
+      font-size: 16px;
+      height: 200px;
+      width: 100%;
+      margin: 0;
+      -webkit-box-sizing: border-box;
+      -moz-box-sizing: border-box;
+      box-sizing: border-box;
+    }
+    #blogenter {
+      margin-top: 10px;
+    }
+    #blogentersubmit {
+      width: 200px;
+      height: 40px;
+    }
     </style>
     
     <script type="application/javascript">
@@ -185,7 +212,7 @@
         var e = es[i];
         var title = e.m;
         if(!color_hash.hasOwnProperty(title)) {
-          color_hash[title] = "hsl(" + Math.floor((cc+0.5)/etypes.length * 360) + ",100%,60%)";
+          color_hash[title] = "hsl(" + Math.floor((cc+0.5)/etypes.length * 360) + ",200%,60%)";
           cc++;
         }
       }
@@ -284,20 +311,6 @@
     // creates the main barcode time visualization for all mapped window titles
     function visualizeEvents(es) {
       $("#eventvis").empty();
-
-      /*
-      var oi = [];
-      for(var k=0;k<etypes.length;k++) {
-        var mt = etypes[k];
-        oi.push({i:k, c:ecounts[mt]});
-      }
-      oi.sort(function(a,b){return b.c-a.c;});
-      for(var k=0;k<etypes.length;k++) {
-        var mt = etypes[oi[k].i]; // mapped title of this event type
-        visualizeEvent(es, mt);
-      }
-      */
-
       for(var k=0;k<display_groups.length;k++) {
         visualizeEvent(es, display_groups[k]);
       }
@@ -653,7 +666,7 @@
       var filters_div = div.append("div").attr("class", "fsdiv");
       for(var q=0;q<filter.length;q++) {
         if(ttoti[q] === 0) continue; // this filter wasnt found
-        
+
         var filter_div = filters_div.append("div").attr("class", "fdiv");
         var c = filter_colors[q];
         filter_div.append("p").attr("class", "tt").attr("style", "color:"+c).text(filter[q]);
@@ -751,18 +764,29 @@
       var spinner = new Spinner(opts).spin(target);
     }
 
-    function fetchAndLoadEvents(json_path) {
+    function fetchAndLoadEvents(daylog) {
       loaded = false;
+      var json_path = daylog.fname;
 
+      // fill in blog area with blog for this day
       $.getJSON(json_path, function(data){
         loaded = true;
         events = data['window_events'];
         key_events = data['keyfreq_events']
         notes_events = data['notes_events']
+
+        blog = 'blog' in data ? data['blog'] : 'click to enter blog for this day';
+        $("#blogpre").text(blog);
+
         mapEvents(events); // assign group names
         statEvents(events);
         hashMappedTitles(events);
-        findMinMaxTime(events);
+        if(events.length > 0) {
+          findMinMaxTime(events);
+        } else {
+          t00 = daylog.t0;
+          ft = daylog.t1;
+        }
         visualizeEvents(events);
         writeHeader();
         createPieChart(events);
@@ -777,6 +801,7 @@
     var events;
     var key_events;
     var notes_events;
+    var blog;
     var tooltip;
     var event_list = [];
     var loaded = false;
@@ -794,7 +819,7 @@
       $.getJSON("export_list.json", function(data){
         event_list = data; // assign to global variable
         cur_event_id = event_list.length - 1;
-        fetchAndLoadEvents(event_list[cur_event_id].fname); // display latest
+        fetchAndLoadEvents(event_list[cur_event_id]); // display latest
       });
 
       // setup notes hide key
@@ -811,7 +836,7 @@
             $("#spinnerdiv").empty();
             if(data === 'OK') {
               // everything went well, refresh current view
-              fetchAndLoadEvents(event_list[cur_event_id].fname);
+              fetchAndLoadEvents(event_list[cur_event_id]);
             }
         });
       });
@@ -829,7 +854,7 @@
               // everything went well, refresh current view
               $("#notetext").val('') // erase
               $("#notesinfo").hide(); // take away
-              fetchAndLoadEvents(event_list[cur_event_id].fname);
+              fetchAndLoadEvents(event_list[cur_event_id]);
             }
         });
       });
@@ -847,8 +872,10 @@
         if(cur_event_id < 0) {
           cur_event_id = 0;
         } else {
-          fetchAndLoadEvents(event_list[cur_event_id].fname); // display latest
+          fetchAndLoadEvents(event_list[cur_event_id]); // display latest
           $("#notesinfo").hide();
+          $("#blogenter").hide();
+          $("#blogpre").show();
         }
       });
       $("#rightarrow").click(function() {
@@ -856,11 +883,41 @@
         if(cur_event_id >= event_list.length) {
           cur_event_id = event_list.length - 1;
         } else {
-          fetchAndLoadEvents(event_list[cur_event_id].fname); // display latest
+          fetchAndLoadEvents(event_list[cur_event_id]); // display latest
           $("#notesinfo").hide();
+          $("#blogenter").hide();
+          $("#blogpre").show();
         }
       });
 
+      // setup blog text click event
+      $("#blogenter").hide();
+      $("#blogpre").click(function(){
+        var txt = $("#blogpre").text();
+        $("#blogpre").hide();
+        $("#blogenter").show();
+        $("#blogentertxt").val(txt)
+        $("#blogentertxt").focus();
+      });
+
+      // setup the submit blog entry button
+      $("#blogentersubmit").click(function(){
+        var txt = $("#blogentertxt").val();
+        $("#blogpre").text(txt);
+        $("#blogpre").show();
+        $("#blogenter").hide();
+
+        // submit to server with POST request
+        $.post("/blog",
+          {"time" : event_list[cur_event_id].t0, "post": txt},
+           function(data,status){
+            console.log("Data: " + data + "\nStatus: " + status);
+            $("#spinnerdiv").empty();
+            if(data === 'OK') {
+              // everything went well
+            }
+          });
+      });
       setInterval(redraw, 1000); // in case of window resize, we can redraw
     }
 
@@ -893,6 +950,13 @@
       <div id="header"></div>
     </div>
     <div id="wrap">
+      <div id="blogwrap">
+        <pre id="blogpre"></pre>
+        <div id="blogenter">
+          <textarea id="blogentertxt"></textarea>
+          <button id="blogentersubmit">Submit</button>
+        </div>
+      </div>
       <div id="keystats"></div>
       <div id="keygraph"></div>
       <div id="notesinfo">

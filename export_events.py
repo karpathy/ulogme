@@ -4,18 +4,8 @@ import json
 import os
 import os.path
 import sys
+import glob
 
-# only json for one file will be recomputed, the file which contains
-# time stamp given in the argument
-FILTER_TIME = 0
-if len(sys.argv) > 1:
-  FILTER_TIME = int(sys.argv[1])
-
-ROOT = ''
-RENDER_ROOT = os.path.join(ROOT, 'render')
-
-mint = -1
-maxt = -1
 
 def loadEvents(fname):
   """
@@ -23,7 +13,6 @@ def loadEvents(fname):
   followed by arbitrary string, one per line. Outputs as dictionary.
   Also keeps track of min and max time seen in global mint,maxt
   """
-  global mint, maxt # not proud of this, okay?
   events = []
 
   try:
@@ -34,61 +23,93 @@ def loadEvents(fname):
       stamp = int(w[:ix])
       str = w[ix+1:]
       events.append({'t':stamp, 's':str})
-      if stamp < mint or mint==-1: mint = stamp
-      if stamp > maxt or maxt==-1: maxt = stamp
   except Exception, e:
-    print 'could not load %s. Setting empty events list.' % (fname, )
-    print e
+    print '%s does not exist, setting empty events list.' % (fname, )
     events = []
   return events
 
-# load all window events
-active_window_file = os.path.join(ROOT, 'logs/activewin.txt')
-print 'loading windows events...'
-wevents = loadEvents(active_window_file)
+def mtime(f):
+  """
+  return time file was last modified, or 0 if it doesnt exist
+  """
+  if os.path.isfile(f):
+    return int(os.path.getmtime(f))
+  else:
+    return 0
 
-# load all keypress events
-keyfreq_file = os.path.join(ROOT, 'logs/keyfreq.txt')
-print 'loading key frequencies...'
-kevents = loadEvents(keyfreq_file)
-for k in kevents: # convert the key frequency to just be an int, not string
-  k['s'] = int(k['s'])
+def updateEvents():
+  """
+  goes down the list of .txt log files and writes all .json
+  files that can be used by the frontend
+  """
+  L = []
+  L.extend(glob.glob("logs/keyfreq_*.txt"))
+  L.extend(glob.glob("logs/window_*.txt"))
+  L.extend(glob.glob("logs/notes_*.txt"))
 
-print 'loading notes...'
-notes_file = os.path.join(ROOT, 'logs/notes.txt')
-nevents = loadEvents(notes_file)
+  # extract all times. all log files of form {type}_{stamp}.txt
+  ts = [int(x[x.find('_')+1:x.find('.txt')]) for x in L]
+  ts.sort()
 
-# coming soon
-#music_file = ROOT + 'music/music.txt'
-#print 'loading music...'
-#mevents = loadEvents(music_file)
+  mint = min(ts)
+  maxt = max(ts)
 
-os.system('mkdir -p ' + RENDER_ROOT) # make sure output directory exists
+  # march from beginning to end, group events for each day and write json
+  ROOT = ''
+  RENDER_ROOT = os.path.join(ROOT, 'render')
+  os.system('mkdir -p ' + RENDER_ROOT) # make sure output directory exists
+  t = mint
+  out_list = []
+  while t <= maxt:
+    t0 = t
+    t1 = t0 + 60*60*24 # 24 hrs later
+    fout = 'events_%d.json' % (t0, )
+    out_list.append({'t0':t0, 't1':t1, 'fname': fout})
 
-# rewind time to 7am on earliest data collection day
-dfirst = datetime.datetime.fromtimestamp(mint)
-dfirst = datetime.datetime(dfirst.year, dfirst.month, dfirst.day, 7) # set hour to 7am
-curtime = int(dfirst.strftime("%s"))
-out_list = []
-while curtime < maxt:
-  t0 = curtime
-  t1 = curtime + 60*60*24 # one day later
-
-  fout = 'events_%d.json' % (t0, )
-  out_list.append({'t0':t0, 't1':t1, 'fname': fout})
-
-  # perform filtering if needed
-  if FILTER_TIME == 0 or (t0 <= FILTER_TIME and FILTER_TIME < t1):
-    e1 = [x for x in wevents if x['t'] >= t0 and x['t'] < t1]
-    e2 = [x for x in kevents if x['t'] >= t0 and x['t'] < t1]
-    e3 = [x for x in nevents if x['t'] >= t0 and x['t'] < t1]
-    eout = {'window_events': e1, 'keyfreq_events': e2, 'notes_events': e3}
     fwrite = os.path.join(RENDER_ROOT, fout)
-    open(fwrite, 'w').write(json.dumps(eout))
-    print 'wrote ' + fwrite
+    e1f = 'logs/window_%d.txt' % (t0, )
+    e2f = 'logs/keyfreq_%d.txt' % (t0, )
+    e3f = 'logs/notes_%d.txt' % (t0, )
+    e4f = 'logs/blog_%d.txt' % (t0, )
 
-  curtime += 60*60*24
+    dowrite = False
 
-fwrite = os.path.join(RENDER_ROOT, 'export_list.json')
-open(fwrite, 'w').write(json.dumps(out_list))
-print 'wrote ' + fwrite
+    # output file already exists?
+    # if the log files have not changed there is no need to regen
+    if os.path.isfile(fwrite):
+      tmod = mtime(fwrite)
+      e1mod = mtime(e1f)
+      e2mod = mtime(e2f)
+      e3mod = mtime(e3f)
+      e4mod = mtime(e4f)
+      if e1mod > tmod or e2mod > tmod or e3mod > tmod or e4mod > tmod:
+        dowrite = True # better update!
+        print 'a log file has changed, so will update %s' % (fwrite, )
+    else:
+      # output file doesnt exist, so write.
+      dowrite = True
+
+    if dowrite:
+      # okay lets do work
+      e1 = loadEvents(e1f)
+      e2 = loadEvents(e2f)
+      e3 = loadEvents(e3f)
+      for k in e2: k['s'] = int(k['s']) # int convert
+
+      e4 = ''
+      if os.path.isfile(e4f):
+        e4 = open(e4f, 'r').read()
+
+      eout = {'window_events': e1, 'keyfreq_events': e2, 'notes_events': e3, 'blog': e4}
+      open(fwrite, 'w').write(json.dumps(eout))
+      print 'wrote ' + fwrite
+
+    t = t1
+
+  fwrite = os.path.join(RENDER_ROOT, 'export_list.json')
+  open(fwrite, 'w').write(json.dumps(out_list))
+  print 'wrote ' + fwrite
+
+# invoked as script
+if __name__ == '__main__':
+  updateEvents()

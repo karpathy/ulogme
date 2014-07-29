@@ -8,13 +8,11 @@ read -p "Enter note: " n
 
 if [ -z $1 ] 
 then 
-  # $1 was provided, use it
-  echo "saving new note \"$n\" for current time ($(date))"
-  T="$(date +%s)"
-  echo "$T $n" >> logs/notes.txt
- 
+  T="$(date +%s)" # defualt to current time
 else
-  # no $1 provided, use current time
-  echo "saving new note \"$n\" for given time ($1)"
-  echo "$1 $n" >> logs/notes.txt
+  T=$1 # argument was provided, use it!
 fi
+
+logfile="logs/notes_$(python rewind7am.py $T).txt"
+echo "$T $n" >> $logfile
+echo "logged note: $T $n into $logfile"

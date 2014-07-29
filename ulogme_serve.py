@@ -4,6 +4,9 @@ import sys
 import cgi
 import os
 
+from export_events import updateEvents
+from rewind7am import rewindTime
+
 # Port settings
 IP = ""
 if len(sys.argv) > 1:
@@ -36,14 +39,11 @@ class CustomHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
     result = 'NOT_UNDERSTOOD'
 
     if self.path == '/refresh':
-      # recompute jsons. We have to pop out to root from render. It's a little ugly
+      # recompute jsons. We have to pop out to root from render directory
+      # temporarily. It's a little ugly
       refresh_time = form.getvalue('time')
       os.chdir(rootdir) # pop out
-      if refresh_time != '0':
-        os.system('python export_events.py ' + refresh_time)
-      else:
-        os.system('python export_events.py') # reload all events
-        
+      updateEvents() # defined in export_events.py
       os.chdir('render') # pop back to render directory
       result = 'OK'
       
@@ -51,11 +51,21 @@ class CustomHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
       # add note at specified time and refresh
       note = form.getvalue('note')
       note_time = form.getvalue('time')
-      print 'adding note %s at time %s.' % (note, note_time)
       os.chdir(rootdir) # pop out
-      with open("logs/notes.txt", "a") as myfile:
-        myfile.write(note_time + ' ' + note + '\n')
-      os.system('python export_events.py ' + note_time) # recompute at this time
+      os.system('echo %s | ./note.sh %s' % (note, note_time))
+      updateEvents() # defined in export_events.py
+      os.chdir('render') # go back to render
+      result = 'OK'
+
+    if self.path == '/blog':
+      # add note at specified time and refresh
+      post = form.getvalue('post')
+      if post is None: post = ''
+      post_time = int(form.getvalue('time'))
+      os.chdir(rootdir) # pop out
+      trev = rewindTime(post_time)
+      open('logs/blog_%d.txt' % (post_time, ), 'w').write(post)
+      updateEvents() # defined in export_events.py
       os.chdir('render') # go back to render
       result = 'OK'
     
