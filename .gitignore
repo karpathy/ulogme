@@ -4,3 +4,5 @@ logs
 *.swp
 *.pyc
 old
+.DS_Store
+.python_pid

@@ -8,11 +8,12 @@
 
 mkdir -p logs
 
-./osx/osx_setup.sh
+DEV=false
 
-PID_FILE=".python_pid"
-ACTIVE_WINDOW_FILE="logs/activewin.txt"
-KEYSTROKE_FILE="logs/keyfreq.txt"
+PID_FILE="$(pwd)/.python_pid"
+ACTIVE_WINDOW_FILE="$(pwd)/logs/activewin.txt"
+KEYSTROKE_FILE="$(pwd)/logs/keyfreq.txt"
+KEYSTROKE_RAW_FILE="$(pwd)/logs/keyfreqraw.txt"
 
 control_c() {
   cat .python_pid | xargs kill
@@ -22,12 +23,27 @@ control_c() {
 
 trap control_c SIGINT
 
-python osx/ulogme_osx.py \
-  --pid_file=$PID_FILE \
-  --active_window_file=$ACTIVE_WINDOW_FILE \
-  --keystroke_file=$KEYSTROKE_FILE \
-  &
+if [ "$DEV" = true ]; then
+  # Directly invoke the python script
+  python osx/ulogme_osx.py \
+    --pid_file=$PID_FILE \
+    --active_window_file=$ACTIVE_WINDOW_FILE \
+    --keystroke_raw_file=$KEYSTROKE_RAW_FILE \
+    &
+else
+  # Run the app version
+  ./osx/dist/ulogme_osx.app/Contents/MacOS/ulogme_osx \
+    --pid_file=$PID_FILE \
+    --active_window_file=$ACTIVE_WINDOW_FILE \
+    --keystroke_raw_file=$KEYSTROKE_RAW_FILE \
+    &
+fi
+
 
 while true; do
-  sleep 10
+  sleep 9
+  touch $KEYSTROKE_RAW_FILE
+  num=$(wc -l < $KEYSTROKE_RAW_FILE)
+  echo "$(date +%s) $num"  >> $KEYSTROKE_FILE
+  rm $KEYSTROKE_RAW_FILE
 done
