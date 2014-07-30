@@ -157,8 +157,16 @@
           dtimes.push(edur[k].hasOwnProperty(etypes[i]) ? edur[k][etypes[i]] : 0);
         }
 
+        svgg = svg.append('g')
+          .attr("style", "cursor:pointer;")
+          .on("click", function(q){ 
+            return function(){
+              window.location.href = 'index.html?gotoday=' + q;
+            };
+          }(k)); // have to closure k
+
         var gh = 0;
-        svg.selectAll(".day"+k)
+        svgg.selectAll(".day"+k)
           .data(dtimes)
         .enter()
           .append("rect")
@@ -223,7 +231,7 @@
       hashMappedTitles(); // build up color hashes for the titles
       
       for(var k=0;k<events.length;k++) {
-        edur.push({})
+        edur.push({}) // hmmm
         var es = events[k]['window_events']; // window events for day k
         statEvents(es, edur[k]);
       }
@@ -377,32 +385,20 @@
     }
 
     function get(url) {
-      // Return a new promise.
       return new Promise(function(resolve, reject) {
-        // Do the usual XHR stuff
         var req = new XMLHttpRequest();
         req.open('GET', url);
-
         req.onload = function() {
-          // This is called even on 404 etc
-          // so check the status
           if (req.status == 200) {
-            // Resolve the promise with the response text
             resolve(req.response);
           }
           else {
-            // Otherwise reject with the status text
-            // which will hopefully be a meaningful error
             reject(Error(req.statusText));
           }
         };
-
-        // Handle network errors
         req.onerror = function() {
           reject(Error("Network Error"));
         };
-
-        // Make the request
         req.send();
       });
     }
@@ -439,6 +435,9 @@
       opts = {left:'30px', top:'40px', radius: 10, color: "#FFF" };
       var spinner = new Spinner(opts).spin(target);
     }
+    function stopSpinner() {
+      $("#spinnerdiv").empty();
+    }
 
     var event_list;
     var events;
@@ -453,14 +452,13 @@
           {"time" : 0},
           function(data,status){
             console.log("Data: " + data + "\nStatus: " + status);
-            $("#spinnerdiv").empty();
+            stopSpinner();
             if(data === 'OK') {
               // everything went well, refresh current view
               loadAllEvents(); // reload all events
             }
         });
       });
-    
     }
 
     </script>
