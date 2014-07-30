@@ -11,6 +11,8 @@
     <script src="render_utils.js"></script>
     <script src="render_settings.js"></script>
     <script src="d3.min.js" charset="utf-8"></script>
+    <script src="underscore.min.js" charset="utf-8"></script>
+    <script src="ulogme_common.js" charset="utf-8"></script>
 
     <style>
     body {
@@ -204,44 +206,11 @@
     
     <script type="application/javascript">
 
-    // utility function
-    var QueryString = function () {
-      // This function is anonymous, is executed immediately and 
-      // the return value is assigned to QueryString!
-      var query_string = {};
-      var query = window.location.search.substring(1);
-      var vars = query.split("&");
-      for (var i=0;i<vars.length;i++) {
-        var pair = vars[i].split("=");
-          // If first entry with this name
-        if (typeof query_string[pair[0]] === "undefined") {
-          query_string[pair[0]] = pair[1];
-          // If second entry with this name
-        } else if (typeof query_string[pair[0]] === "string") {
-          var arr = [ query_string[pair[0]], pair[1] ];
-          query_string[pair[0]] = arr;
-          // If third or later entry with this name
-        } else {
-          query_string[pair[0]].push(pair[1]);
-        }
-      } 
-        return query_string;
-    }(); // execute immediately
-
-    // builds a dictionary of window title -> color
-    var color_hash = {};
-    function hashMappedTitles(es) {
-      var cc = 0;
-      for(var i=0,N=es.length;i<N;i++) {
-        var e = es[i];
-        var title = e.m;
-        if(!color_hash.hasOwnProperty(title)) {
-          color_hash[title] = "hsl(" + Math.floor((cc+0.5)/etypes.length * 360) + ",200%,60%)";
-          cc++;
-        }
-      }
-    }
-
+    // GLOBALS
+    var color_hash = {}; // mapped titles -> hsl color to draw with
+    var t00; // initial time for a day (time first event began)
+    var ft; // final time for a day (time last event ended)
+    
     // renders pie chart showing distribution of time spent into #piechart
     function createPieChart(es) {
       $("#piechart").empty();
@@ -320,18 +289,6 @@
 
     }
 
-    var ft; // final time
-    var t00; // initial time
-    function findMinMaxTime(es) {
-      var fml = true;
-      for(var i=0,N=es.length;i<N;i++) {
-        var e = es[i];
-        if(fml) { t00 = e.t; ft = e.t + e.dt; fml = false; }
-        if(e.t < t00) t00 = e.t;
-        if(e.t + e.dt > ft) ft = e.t + e.dt;
-      }
-    }
-    
     // creates the main barcode time visualization for all mapped window titles
     function visualizeEvents(es) {
       $("#eventvis").empty();
@@ -767,14 +724,6 @@
       es[N-1].dt = 1; // last event we dont know how long lasted. assume 1 second?
     }
 
-    // map every event to a group name
-    function mapEvents(es) {
-      for(var i=0,N=es.length;i<N;i++) {
-        var e = es[i];
-        e.m = mapwin(e.s);
-      }
-    }
-
     function writeHeader() {
       var date0 = new Date(t00*1000);
       var date1 = new Date(ft*1000);
@@ -796,22 +745,35 @@
       // fill in blog area with blog for this day
       $.getJSON(json_path, function(data){
         loaded = true;
+
+        // save these as globals for later access
         events = data['window_events'];
         key_events = data['keyfreq_events']
         notes_events = data['notes_events']
 
-        blog = 'blog' in data ? data['blog'] : 'click to enter blog for this day';
-        $("#blogpre").text(blog);
-
-        mapEvents(events); // assign group names
+        // map all window titles through the (customizable) mapwin function
+        _.each(events, function(e) { e.m = mapwin(e.s); });
+        
+        // compute various statistics
         statEvents(events);
-        hashMappedTitles(events);
+
+        // create color hash table, maps from window titles -> HSL color
+        color_hash = colorHashStrings(_.uniq(_.pluck(events, 'm')));
+
+        // find the time extent: min and max time for this day
         if(events.length > 0) {
-          findMinMaxTime(events);
+          t00 = _.min(_.pluck(events, 't'));
+          ft = _.max(_.map(events, function(e) { return e.t + e.dt; }))
         } else {
           t00 = daylog.t0;
           ft = daylog.t1;
         }
+
+        // render blog entry
+        blog = 'blog' in data ? data['blog'] : '';
+        if(blog === '') { blog = 'click to enter blog for this day'; }
+        $("#blogpre").text(blog);
+
         visualizeEvents(events);
         writeHeader();
         createPieChart(events);
@@ -847,6 +809,7 @@
         event_list = data; // assign to global variable
         cur_event_id = event_list.length - 1;
 
+        //var qc = QueryString();
         if('gotoday' in QueryString) {
           fetchAndLoadEvents(event_list[parseInt(QueryString.gotoday)]); // display desired
         } else {

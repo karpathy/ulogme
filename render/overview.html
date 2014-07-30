@@ -12,6 +12,8 @@
     <script src="render_settings.js"></script>
     <script src="d3.min.js" charset="utf-8"></script>
 
+    <script src="ulogme_common.js" charset="utf-8"></script>
+
     <style>
     body {
       font-family: Impact, Charcoal, sans-serif;
@@ -178,17 +180,6 @@
       }
     }
 
-    // builds a dictionary of window title -> color
-    var color_hash = {};
-    function hashMappedTitles() {
-      var cc = 0;
-      for(var i=0,N=etypes.length;i<N;i++) {
-        var title = etypes[i];
-        color_hash[title] = "hsl(" + Math.floor((cc+0.5)/etypes.length * 360) + ",100%,60%)";
-        cc++;
-      }
-    }
-
     // enter .m field and build up etypes[]
     var etypes = []
     function mapEvents(es) {
@@ -221,6 +212,7 @@
     }
 
     var edur = []; // stores durations for events for all days. Core structure!
+    var color_hash = {};
     function analyzeEvents() {
       edur = []; // reset global var
 
@@ -228,7 +220,7 @@
         var es = events[k]['window_events']; // window events for day k
         mapEvents(es); // assign group names to structure in field .m, build etypes[]
       }
-      hashMappedTitles(); // build up color hashes for the titles
+      color_hash = colorHashStrings(etypes);
       
       for(var k=0;k<events.length;k++) {
         edur.push({}) // hmmm
