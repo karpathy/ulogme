@@ -60,3 +60,12 @@ function getJSON(url) {
     throw err;
   });
 }
+
+function getJSON_CACHEHACK(url) {
+  // get returns a Promise
+  var hackurl = url + '?sigh=' + Math.floor(100000*Math.random());
+  return get(hackurl).then(JSON.parse).catch(function(err) {
+    console.log("getJSON failed for", url, err);
+    throw err;
+  });
+}
