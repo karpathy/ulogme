@@ -376,33 +376,6 @@
       div.append('p').text('total keys pressed: ' + sum_kevents_global + ' in ' + events.length + ' days (' + Math.floor(sum_kevents_global/events.length) + ' per day average)');
     }
 
-    function get(url) {
-      return new Promise(function(resolve, reject) {
-        var req = new XMLHttpRequest();
-        req.open('GET', url);
-        req.onload = function() {
-          if (req.status == 200) {
-            resolve(req.response);
-          }
-          else {
-            reject(Error(req.statusText));
-          }
-        };
-        req.onerror = function() {
-          reject(Error("Network Error"));
-        };
-        req.send();
-      });
-    }
-
-    function getJSON(url) {
-      // get returns a Promise
-      return get(url).then(JSON.parse).catch(function(err) {
-        console.log("getJSON failed for", url, err);
-        throw err;
-      });
-    }
-
     function loadAllEvents() {
 
       // load the master json file and all the other jsons
@@ -422,7 +395,7 @@
     }
 
     function startSpinner() {
-      // create a spinner
+      // create a spinner object
       var target = document.getElementById('spinnerdiv');
       opts = {left:'30px', top:'40px', radius: 10, color: "#FFF" };
       var spinner = new Spinner(opts).spin(target);
