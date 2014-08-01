@@ -11,8 +11,7 @@ mkdir -p logs
 DEV=false
 
 PID_FILE="$(pwd)/.python_pid"
-ACTIVE_WINDOW_FILE="$(pwd)/logs/activewin.txt"
-KEYSTROKE_FILE="$(pwd)/logs/keyfreq.txt"
+ACTIVE_WINDOW_FILE="$(pwd)/logs/activewin_%s.txt" # %s will be repaced with timestamp of 7am on that day
 KEYSTROKE_RAW_FILE="$(pwd)/logs/keyfreqraw.txt"
 
 control_c() {
@@ -28,22 +27,22 @@ if [ "$DEV" = true ]; then
   python osx/ulogme_osx.py \
     --pid_file=$PID_FILE \
     --active_window_file=$ACTIVE_WINDOW_FILE \
-    --keystroke_raw_file=$KEYSTROKE_RAW_FILE \
     &
 else
   # Run the app version
   ./osx/dist/ulogme_osx.app/Contents/MacOS/ulogme_osx \
     --pid_file=$PID_FILE \
     --active_window_file=$ACTIVE_WINDOW_FILE \
-    --keystroke_raw_file=$KEYSTROKE_RAW_FILE \
     &
 fi
 
-
+# keystroke logging runs in this thread, because in python
+# wonky things happen with the timing, sleep etc.
 while true; do
   sleep 9
   touch $KEYSTROKE_RAW_FILE
   num=$(wc -l < $KEYSTROKE_RAW_FILE)
+  KEYSTROKE_FILE = "$(pwd)/logs/keyfreq_$(python rewind7am.py).txt"
   echo "$(date +%s) $num"  >> $KEYSTROKE_FILE
   rm $KEYSTROKE_RAW_FILE
 done

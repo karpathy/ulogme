@@ -62,7 +62,10 @@ function getJSON(url) {
 }
 
 function getJSON_CACHEHACK(url) {
-  // get returns a Promise
+  // Sometimes caching can refuse to retrieve a JSON object if
+  // it has been updated. Appending a random number is a hacky
+  // way of preventing this caching and ensures that the newest
+  // version is retrieved
   var hackurl = url + '?sigh=' + Math.floor(100000*Math.random());
   return get(hackurl).then(JSON.parse).catch(function(err) {
     console.log("getJSON failed for", url, err);

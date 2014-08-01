@@ -8,10 +8,9 @@ from Cocoa import *
 from Quartz import CGWindowListCopyWindowInfo, kCGWindowListOptionOnScreenOnly, kCGNullWindowID
 from PyObjCTools import AppHelper
 
+from rewind7am import rewindTime
 
-DEBUG_KEYSTROKE = False
 DEBUG_APP = False
-
 
 def current_time():
   """
@@ -32,9 +31,7 @@ def remove_non_ascii(s):
 class AppDelegate(NSObject):
 
   def applicationDidFinishLaunching_(self, note):
-    mask = NSKeyDownMask
-    NSEvent.addGlobalMonitorForEventsMatchingMask_handler_(mask, self.event_sniffer.event_handler)
-    NSEvent.addLocalMonitorForEventsMatchingMask_handler_(mask, self.event_sniffer.event_handler)
+    pass
 
   def applicationActivated_(self, note):
     app =  note.userInfo().objectForKey_('NSWorkspaceApplicationKey')
@@ -53,7 +50,6 @@ class EventSniffer:
   
   def __init__(self, options):
     self.options = options
-    self.num_keystrokes = 0
     self.current_app = None
     self.last_app_logged = None
     self.init_chrome_tab_script()
@@ -100,7 +96,6 @@ class EventSniffer:
     # I don't think we need to track when the screen comes awake, but in case
     # we do we can listen for NSWorkspaceScreensDidWakeNotification
 
-
     NSTimer.scheduledTimerWithTimeInterval_target_selector_userInfo_repeats_(
         self.options.active_window_time, self.delegate, 'writeActiveApp:',
         None, True)
@@ -112,13 +107,7 @@ class EventSniffer:
     self.current_app = remove_non_ascii(app_name)
 
   def event_handler(self, event):
-    if event.type() == NSKeyDown:
-      if DEBUG_KEYSTROKE:
-        print 'Got keystroke in %s' % self.current_app
-      self.num_keystrokes += 1
-      with open(options.keystroke_raw_file, 'a') as f:
-        # TODO: WRITE KEYCODE INSTEAD
-        f.write('\n')
+    pass
 
   def screen_sleep_handler(self):
     self.current_app = '__LOCKEDSCREEN'
@@ -165,32 +154,16 @@ class EventSniffer:
         s = '%d %s' % (current_time(), name_to_log)
         if DEBUG_APP:
           print s
-        with open(self.options.active_window_file, 'a') as f:
+        # substitute the rewound time to the window file pattern and write
+        fname = self.options.active_window_file % (rewindTime(current_time()), )
+        with open(fname, 'a') as f:
           f.write('%s\n' % s)
-
-  def write_keystrokes(self):
-    """
-    Write the number of keystrokes to output file, and schedule
-    another call of this method.
-    """
-    s = '%d %d' % (current_time(), self.num_keystrokes)
-    if DEBUG_KEYSTROKE:
-      print s
-    with open(self.options.keystroke_file, 'a') as f:
-      f.write('%s\n' % s)
-    self.num_keystrokes = 0
-
 
 if __name__ == '__main__':
   option_list = [
       make_option('--pid_file',
                   action='store',
                   dest='pid_file',
-                  default=None,
-                  help='Required.'),
-      make_option('--keystroke_raw_file',
-                  action='store',
-                  dest='keystroke_raw_file',
                   default=None,
                   help='Required.'),
       make_option('--active_window_file',

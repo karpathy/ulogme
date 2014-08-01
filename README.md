@@ -11,7 +11,7 @@ Keep track of your productivity throughout the day: visualize your active window
 - Record note annotations for particular times of day, or for day in general
 - Everything runs completely locally: none of your data is uploaded anywhere
 
-The project currently **only works on Ubuntu**.
+The project currently **only works on Ubuntu and OSX**.
 
 ## Demo
 
@@ -52,7 +52,7 @@ There were some changes with how events are represented (moving from one file to
 $ python legacy_split_events.py
 ```
 
-one time to split up your events for the new version. Everything should just work.
+one time to split up your events for the new version.
 
 ## License
 MIT
