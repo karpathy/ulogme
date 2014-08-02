@@ -12,8 +12,12 @@
     <script src="render_utils.js"></script>
     <script src="render_settings.js"></script>
     <script src="d3.min.js" charset="utf-8"></script>
+    <script src="d3utils.js" charset="utf-8"></script>
+    <script src="underscore.min.js" charset="utf-8"></script>
     <script src="ulogme_common.js" charset="utf-8"></script>
     <script type="application/javascript">
+
+    key_stats_all = [] // global
 
     var skipdraw = {}; // global...
     function drawEvents() {
@@ -349,10 +353,90 @@
       }).catch(function(err){
         console.log('some error happened: ' + err);
       }).then(function() {
+        
         analyzeEvents(); // all events have been loaded. Analyze!
         drawEvents(); // and d3js draw!
+        
+        key_stats_all = mergeWindowKeyEvents();
+        visualizeKeySummary(key_stats_all);
+        visualizeTimeSummary(edur);
+
         drawKeyEvents(); // draw key events
       });
+    }
+
+    function mergeWindowKeyEvents() {
+      // iterate over all events and compute key_stats
+      var key_stats_all = [];
+      for(var k=0;k<events.length;k++) {
+        var es = events[k]['window_events']; // window events for day k
+        var ek = events[k]['keyfreq_events']; // key events
+        key_stats = computeKeyStats(es, ek); // defined in ulogme_common
+        key_stats_all.push(key_stats);
+      }
+      return key_stats_all;
+    }
+
+    function visualizeKeySummary(key_stats_all) {
+      $("#keysummary").empty();
+
+      // merge all keystats into a single global key stats
+      var gstats = {};
+      _.each(etypes, function(m) { gstats[m] = {name: m, val: 0, n:0, col: color_hash[m]}; });
+      var n = key_stats_all.length;
+      for(var i=0;i<n;i++) {
+        var key_stats = key_stats_all[i];
+        for(var j=0;j<etypes.length;j++) {
+          var e = etypes[j];
+          if(key_stats.hasOwnProperty(e)) {
+            gstats[e].val += key_stats[e].f;
+            gstats[e].n += key_stats[e].n;
+          }
+        }
+      }
+      gstats = _.filter(gstats, function(d) { return d.val > 0; }); // cutoff at 0 keys
+      _.each(gstats, function(d) { d.text = d.val + ' (' + (d.val/(d.n*9)).toFixed(2) + '/s) (' + d.name + ')'; });
+      gstats = _.sortBy(gstats, 'val').reverse();
+
+      // visualize as chart
+      var chart_data = {};
+      chart_data.width = 600;
+      chart_data.barheight = 30;
+      chart_data.textpad = 300;
+      chart_data.textmargin = 10;
+      chart_data.title = 'total keys per window';
+      chart_data.data = gstats;
+      d3utils.drawHorizontalBarChart(d3.select('#keysummary'), chart_data);
+    }
+
+    function visualizeTimeSummary(edur) {
+      $("#timesummary").empty();
+
+      var gstats = {};
+      _.each(etypes, function(m) { gstats[m] = {name: m, val: 0, n:0, col: color_hash[m]}; });
+      var n = edur.length;
+      for(var i=0;i<n;i++) {
+        var key_stats = edur[i];
+        for(var j=0;j<etypes.length;j++) {
+          var e = etypes[j];
+          if(key_stats.hasOwnProperty(e)) {
+            gstats[e].val += key_stats[e];
+          }
+        }
+      }
+      gstats = _.filter(gstats, function(d) { return d.val > 0; }); // cutoff at 0 keys
+      _.each(gstats, function(d) { d.text = (d.val/60/60).toFixed(2) + 'hr (' + d.name + ')'; });
+      gstats = _.sortBy(gstats, 'val').reverse();
+
+      // visualize as chart
+      var chart_data = {};
+      chart_data.width = 600;
+      chart_data.barheight = 30;
+      chart_data.textpad = 300;
+      chart_data.textmargin = 10;
+      chart_data.title = 'total time per window';
+      chart_data.data = gstats;
+      d3utils.drawHorizontalBarChart(d3.select('#timesummary'), chart_data);
     }
 
     function startSpinner() {
@@ -399,6 +483,11 @@
       </div>
       <h2>Total amount of time per day</h2>
       <div id="content"></div>
+      <h2>Per-window summaries</h2>
+      <div id="summaries">
+        <div id="keysummary"></div>
+        <div id="timesummary"></div>
+      </div>
       <h2>Key frequencies during each day</h2>
       <div id="keystats"></div>
     </div>

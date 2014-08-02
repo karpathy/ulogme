@@ -61,7 +61,7 @@
 
     // uses global variable hacking_events as input. Must be set
     // and global total_hacking_time as well.
-    function visualizeHackingTimes() {
+    function visualizeHackingTimes(hacking_stats) {
       $("#hackingvis").empty();
       if(!draw_hacking) return; // global set in render_settings.js
 
@@ -108,7 +108,10 @@
         };
       });
       stats = _.filter(stats, function(d) { return d.val > 60 }); // cutoff at 1 minute
-      _.each(stats, function(d) { d.fn = (100 * d.val / (key_stats[d.name].n * 9.0)).toFixed(2); });
+      _.each(stats, function(d) { 
+        var fn = (d.val / (key_stats[d.name].n * 9.0)).toFixed(2); 
+        d.text = d.val + ' (' + fn + '/s) ' + d.name;
+      });
       stats = _.sortBy(stats, 'val').reverse();
 
       // visualize as horizontal bars with d3
@@ -283,7 +286,7 @@
         .on("mouseout", function(){return tooltip.style("visibility", "hidden");})
         .on("click", function(d){ 
           $("#notesinfo").show(); 
-          $("#notesmsg").html("clicked event " + d.s + "<br> Add note at time of this event with: <b>./note.sh " + (d.x+t00) + "</b>, or hit add below.");
+          $("#notesmsg").html("clicked event <b>" + d.s + "</b><br> Add note at time of this event:");
           $("#notetext").focus()
           clicktime = d.x+t00;
           return 0; 
@@ -393,7 +396,7 @@
         createPieChart(events, etypes);
         computeKeyStats(events, key_events);
         hacking_stats = computeHackingStats(events, key_events, hacking_titles);
-        visualizeHackingTimes();
+        visualizeHackingTimes(hacking_stats);
         key_stats = computeKeyStats(events, key_events);
         visualizeKeyStats(key_stats, etypes);
         visualizeKeyFreq(key_events);
@@ -536,7 +539,7 @@
       visualizeEvents(events);
       visualizeKeyFreq(key_events);
       visualizeNotes(notes_events);
-      visualizeHackingTimes();
+      visualizeHackingTimes(hacking_stats);
       dirty = false;
     }
 

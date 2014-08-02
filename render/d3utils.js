@@ -70,7 +70,7 @@ var d3utils = {};
 
   function drawHorizontalBarChart(d3div, chart_data) {
     // chart_data.data is a list of data elements.
-    // each should contain fields: val, col, name
+    // each should contain fields: val, col, name, fn (text next to bar)
 
     d3div.html(""); // clear the div
     var div = d3div.append('div');
@@ -86,7 +86,7 @@ var d3utils = {};
     var textmargin = getopt(chart_data, 'textmargin', 20);
     var textpad = getopt(chart_data, 'textpad', 100);
     var textoffy = getopt(chart_data, 'textoffy', 8);
-    
+
     var h = chart_data.data.length * bh;
     var sx = (w - textmargin - textpad) / d3.max(chart_data.data, function(x){ return x.val; }); // for scaling to fit
 
@@ -108,7 +108,7 @@ var d3utils = {};
       
     g.append("text")
       .attr("transform", function(d, i) { return "translate(" + (d.val * sx + textmargin) + "," + ((i+1) * bh - textoffy) + ")"; })
-      .text(function(d) { return d.val + ' (' + d.fn + '/s) ' + d.name; });   
+      .text(function(d) { return d.text });   
   }
 
   // exports

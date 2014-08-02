@@ -78,3 +78,13 @@ h2 {
   text-decoration: line-through;
   background-color: #FCC;
 }
+#keysummary {
+  display: inline-block;
+}
+#timesummary {
+  display: inline-block;
+}
+#summaries {
+  margin-top: 30px;
+  margin-bottom: 40px;
+}
