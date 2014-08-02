@@ -25,6 +25,7 @@
     var ft; // final time for a day (time last event ended)
     var ecounts = {};
     var etypes = [];
+    var hacking_stats = {};
 
     // renders pie chart showing distribution of time spent into #piechart
     function createPieChart(es, etypes) {
@@ -68,8 +69,8 @@
 
       var div = d3.select("#hackingvis").append("div");
       div.append("p").attr("class", "tt").attr("style", "color:"+c).text("Hacking Streak");
-      var txt = strTimeDelta(total_hacking_time);
-      txt += " (total intensity = " + total_hacking_itensity + ")";
+      var txt = strTimeDelta(hacking_stats.total_hacking_time);
+      txt += " (total keys = " + hacking_stats.total_hacking_keys + ")";
       div.append("p").attr("class", "td").text(txt);
 
       var W = $(window).width() - 40;
@@ -79,7 +80,7 @@
 
       var sx = (ft-t00) / W;
       var g = svg.selectAll(".h")
-        .data(hacking_events)
+        .data(hacking_stats.events)
         .enter().append("g")
         .attr("class", "h")
         .on("mouseover", function(d){return tooltip.style("visibility", "visible").text(strTimeDelta(d.dt));})
@@ -92,124 +93,6 @@
         .attr("y", function(d) {return 30-10*d.intensity} )
         .attr("height", function(d) {return 10*d.intensity; })
         .attr("fill", function(d) { return c; });
-    }
-
-    // window and key events are input
-    // both are sorted in time, so do a merge-sort-like thing to assign keys to windows
-    // also in process, lets compute Hacking Streaks
-    var key_stats = {};
-    var hacking_events = [];
-    var total_hacking_time = 0;
-    var total_hacking_intensity = 0;
-    function computeKeyStats(ew, ek) {
-      key_stats = {}; // flush
-
-      var i = 0;
-      var j = 0;
-      var ewn = ew.length;
-      var ekn = ek.length;
-      var cur_window = '';
-      var curwi = -1;
-      var hacking_title = false;
-      var hacking_counter = 0;
-      var hacking_reset_counter = 0;
-      hacking_events = []; // reset this
-      total_hacking_time = 0; // global
-      total_hacking_itensity = 0; // global
-      var hacking_now = false;
-      var hacking_start = -1;
-      var hacking_f_accum = 0;
-
-      var end_hacking = function(t) { // helper fun
-        if(hacking_now) {
-          // we were hacking and now it ended. record the session
-          var h = {};
-          h.t0 = hacking_start;
-          h.t1 = t;
-          h.dt = h.t1 - h.t0; // convenience
-          h.intensity = hacking_f_accum / h.dt; // key strokes per second ;p
-          total_hacking_time += h.dt;
-          total_hacking_itensity += hacking_f_accum;
-          hacking_events.push(h);
-        }
-        hacking_now = false; // and reset tracking vars
-        hacking_counter = 0;
-        hacking_reset_counter = 0;
-        hacking_f_accum = 0;
-      }
-
-      // I know this looks ugly but it's basically merge sort - like thing
-      // that iterates over window and key events and assigns key presses to 
-      // windows
-      while(i<ewn && j<ekn) {
-        var popw;
-        if(i>=ewn) { popw = false; }
-        else if(j>=ekn) { popw = true; }
-        else {
-          var tw = ew[i].t;
-          var tk = ek[j].t;
-          popw = tw < tk;
-        }
-        if(popw) {
-          
-          // process new window event
-          cur_window = ew[i].m;
-          curwi = i;
-
-          // hacking titles are set in render_settings.js
-          hacking_title = hacking_titles.indexOf(cur_window) > -1;
-          i++;
-        } else {
-
-          // process key event
-          if(cur_window !== '') {
-            var fhere = ek[j].s;
-            if(key_stats.hasOwnProperty(cur_window)) {
-              var newf = key_stats[cur_window].f + fhere;
-              key_stats[cur_window].f = newf;
-              key_stats[cur_window].n ++;
-            } else {
-              key_stats[cur_window] = {'f':fhere, 'n':1};
-            }
-
-            // keep track of hacking streaks. Current implementation assumes
-            // that key events are recorded at regular intervals of 9 seconds.
-            // this simplifies a lot of things, but in future may want something
-            // more general.
-            if(hacking_title) {
-              // current active title is a hacking title. accumulate streak
-              if(fhere < 3) {
-                hacking_reset_counter++;
-                if(hacking_reset_counter > 10) {
-                  end_hacking(tk); // way too much time has gone by with no key events. Person is sleeping. This aint hacking!
-                }
-              } else {
-                hacking_reset_counter--;
-                if(hacking_reset_counter < 0) hacking_reset_counter = 0;
-
-                hacking_counter += 1;
-                if(hacking_counter > 15) {
-                  if(!hacking_now) {
-                    // we started hacking. record time
-                    hacking_start = tk;
-                  }
-                  hacking_now = true;
-                }
-                if(hacking_now) {
-                  hacking_f_accum += fhere;
-                }
-              }
-            } else {
-              hacking_reset_counter++;
-              if(hacking_reset_counter > 10) {
-                end_hacking(tk); // way too much time has gone by with no key events. Person is sleeping. This aint hacking!
-              }
-            }
-          }
-          j++;
-        }
-      }
-      console.log('total hacking time: ' + total_hacking_time + 's');
     }
 
     // number of keys pressed in every window type visualization
@@ -509,7 +392,9 @@
         writeHeader();
         createPieChart(events, etypes);
         computeKeyStats(events, key_events);
+        hacking_stats = computeHackingStats(events, key_events, hacking_titles);
         visualizeHackingTimes();
+        key_stats = computeKeyStats(events, key_events);
         visualizeKeyStats(key_stats, etypes);
         visualizeKeyFreq(key_events);
         visualizeNotes(notes_events);

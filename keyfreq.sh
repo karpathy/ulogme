@@ -19,7 +19,7 @@ do
   kill $PID
   
   # count number of key release events
-  num=$(cat logs/keyfreqraw.txt | grep release | wc -l)
+  num=$(cat $helperfile | grep release | wc -l)
   
   # append unix time stamp and the number into file
   logfile="logs/keyfreq_$(python rewind7am.py).txt"
