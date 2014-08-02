@@ -125,7 +125,7 @@
         }(i));
       }
 
-      var margin = {top: 20, right: 10, bottom: 100, left: 40};
+      var margin = {top: 10, right: 10, bottom: 100, left: 40};
       var fullwidth = 1200;
       var fullheight = 800;
       var width = fullwidth - margin.left - margin.right;
@@ -174,6 +174,21 @@
         .attr("font-size", "14px")
         .text(function(d) { var dobj = new Date(d.t0 * 1000); return ppDateShort(dobj); })
 
+      // draw vertical lines at week boundaries for easier visual consumption
+      svg.selectAll('.yd')
+        .data(event_list)
+      .enter()
+        .append("line")
+        .attr("stroke", function(d) { 
+          var dobj = new Date(d.t0 * 1000); 
+          var isMonday = dobj.getDay() === 1;
+          return isMonday ? "#BBB" : "#EEE"
+        })
+        .attr('x1', function(d, i) { return margin.left + i * dsz; })
+        .attr('x2', function(d, i) { return margin.left + i * dsz; })
+        .attr('y1', height + margin.top)
+        .attr('y2', margin.top);
+
       // draw the data
       for(var k=0;k<N;k++) {
         // convert from kv to list
@@ -214,7 +229,6 @@
       for(var i=0,N=es.length;i<N;i++) {
         var e = es[i];
         e.m = mapwin(e.s);
-        if(e.m === "Locked Screen") continue; // skip: doesnt count as work.
         if(etypes.indexOf(e.m) === -1) { 
           etypes.push(e.m); 
           skipdraw[e.m] = false;
