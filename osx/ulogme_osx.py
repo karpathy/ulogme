@@ -11,6 +11,7 @@ from PyObjCTools import AppHelper
 from rewind7am import rewindTime
 
 DEBUG_APP = False
+DEBUG_KEYSTROKE = False
 
 def current_time():
   """
@@ -31,7 +32,9 @@ def remove_non_ascii(s):
 class AppDelegate(NSObject):
 
   def applicationDidFinishLaunching_(self, note):
-    pass
+    mask = NSKeyDownMask
+    NSEvent.addGlobalMonitorForEventsMatchingMask_handler_(mask, self.event_sniffer.event_handler)
+    NSEvent.addLocalMonitorForEventsMatchingMask_handler_(mask, self.event_sniffer.event_handler)
 
   def applicationActivated_(self, note):
     app =  note.userInfo().objectForKey_('NSWorkspaceApplicationKey')
@@ -107,7 +110,11 @@ class EventSniffer:
     self.current_app = remove_non_ascii(app_name)
 
   def event_handler(self, event):
-    pass
+    if event.type() == NSKeyDown:
+      if DEBUG_KEYSTROKE:
+        print 'Got keystroke in %s' % self.current_app
+      with open(options.keystroke_raw_file, 'a') as f:
+        f.write('\n')
 
   def screen_sleep_handler(self):
     self.current_app = '__LOCKEDSCREEN'
@@ -164,6 +171,11 @@ if __name__ == '__main__':
       make_option('--pid_file',
                   action='store',
                   dest='pid_file',
+                  default=None,
+                  help='Required.'),
+        make_option('--keystroke_raw_file',
+                  action='store',
+                  dest='keystroke_raw_file',
                   default=None,
                   help='Required.'),
       make_option('--active_window_file',
