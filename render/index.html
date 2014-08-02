@@ -27,7 +27,7 @@
     var etypes = [];
 
     // renders pie chart showing distribution of time spent into #piechart
-    function createPieChart(es) {
+    function createPieChart(es, etypes) {
 
       // count up the total amount of time spent in all windows
       var dtall = 0;
@@ -507,7 +507,7 @@
 
         visualizeEvents(events);
         writeHeader();
-        createPieChart(events);
+        createPieChart(events, etypes);
         computeKeyStats(events, key_events);
         visualizeHackingTimes();
         visualizeKeyStats(key_stats, etypes);

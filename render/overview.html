@@ -85,19 +85,52 @@
     .divkeys {
       height: 16px;
     }
+    .legenddiv p {
+      display: inline-block;
+      margin-right: 10px;
+      cursor: pointer;
+      padding: 5px;
+    }
+    .skipdrawyes {
+      text-decoration: line-through;
+      background-color: #FCC;
+    }
     </style>
     
     <script type="application/javascript">
 
+    var skipdraw = {};
     function drawEvents() {
       $("#content").empty();
 
-      var margin = {top: 20, right: 10, bottom: 200, left: 40};
+      // draw the legend on top of the svg
+      var d3div = d3.select("#content");
+      var ldiv = d3div.append("div").attr('class', 'legenddiv');
+
+      for(var i=0;i<etypes.length;i++) {
+        var pi = ldiv.append('p').text(etypes[i]).attr('style', 'color:' + color_hash[etypes[i]]);
+
+        var m = etypes[i];
+        if(skipdraw[m]) { pi.attr('class', 'skipdrawyes'); }
+        else { pi.attr('class', 'skipdrawno'); }
+
+        pi.on('click', function(i) { // close over index i
+          return function() {
+            // toggle whether this one gets drawn
+            var m = etypes[i];
+            if(skipdraw[m] === false) { skipdraw[m] = true; }
+            else { skipdraw[m] = false; }
+            drawEvents(); // and redraw the graph!
+          }
+        }(i));
+      }
+
+      var margin = {top: 20, right: 10, bottom: 100, left: 40};
       var fullwidth = 1200;
       var fullheight = 800;
       var width = fullwidth - margin.left - margin.right;
       var height = fullheight - margin.top - margin.bottom;
-      var svg = d3.select("#content").append("svg")
+      var svg = d3div.append("svg")
         .attr("width", width + margin.left + margin.right)
         .attr("height", height + margin.top + margin.bottom)
 
@@ -125,16 +158,6 @@
         yoff += 3600 * yscale;
       }
 
-      // draw the legend
-      var wperitem = (fullwidth-20) / (etypes.length);
-      svg.selectAll(".legend")
-        .data(etypes)
-      .enter()
-        .append("text")
-        .attr("transform", function(d, i) { return "translate(" + (10 + wperitem*i) + "," + (height + margin.top + 130) + ")"; })
-        .attr("fill", function(d){ return color_hash[d]; })
-        .text(function(d){ return d; });
-
       // draw x axis labels
       var N = edur.length;
       var dsz = width / N;
@@ -156,7 +179,12 @@
         // convert from kv to list
         var dtimes = [];
         for(var i=0;i<etypes.length;i++) {
-          dtimes.push(edur[k].hasOwnProperty(etypes[i]) ? edur[k][etypes[i]] : 0);
+          var m = etypes[i];
+          if(skipdraw[m]) continue; // skip!
+          dtimes.push({
+            val: edur[k].hasOwnProperty(m) ? edur[k][m] : 0,
+            col: color_hash[m]
+          });
         }
 
         svgg = svg.append('g')
@@ -173,10 +201,10 @@
         .enter()
           .append("rect")
           .attr("width", dsz)
-          .attr("height", function(d) { return d * yscale; })
+          .attr("height", function(d) { return d.val * yscale; })
           .attr("x", margin.left + k * dsz)
-          .attr("y", function(d) { gh += d; return height + margin.top - gh * yscale; })
-          .attr("fill", function(d, i) { return color_hash[etypes[i]]} );
+          .attr("y", function(d) { gh += d.val; return height + margin.top - gh * yscale; })
+          .attr("fill", function(d) { return d.col; } );
       }
     }
 
@@ -187,7 +215,10 @@
         var e = es[i];
         e.m = mapwin(e.s);
         if(e.m === "Locked Screen") continue; // skip: doesnt count as work.
-        if(etypes.indexOf(e.m) === -1) { etypes.push(e.m); }
+        if(etypes.indexOf(e.m) === -1) { 
+          etypes.push(e.m); 
+          skipdraw[e.m] = false;
+        }
       }
     }
 
@@ -434,6 +465,8 @@
     <div id="indexlink"><a href="index.html">Single-day View</a></div>
     <h1>ulogme</h1>
     <div id="wrap">
+      <div id="graphopts">
+      </div>
       <h2>Total amount of time per day</h2>
       <div id="content"></div>
       <h2>Key frequencies during each day</h2>
