@@ -21,15 +21,8 @@ os.chdir('render')
 # Custom handler
 class CustomHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
   def do_GET(self):
-    # intercept special paths
-    if self.path=='/note':
-      self.send_response(200)
-      self.send_header('Content-type','text/html')
-      self.end_headers()
-      self.wfile.write('OK')
-    else:
-      # default behavior
-      SimpleHTTPServer.SimpleHTTPRequestHandler.do_GET(self) 
+    # default behavior
+    SimpleHTTPServer.SimpleHTTPRequestHandler.do_GET(self) 
 
   def do_POST(self):
     form = cgi.FieldStorage(

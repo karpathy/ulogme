@@ -1,46 +1,56 @@
 // various settings for the rendering, to be modified by user
 
+// these are all regex patterns and the corresponding mapped title string
+// the function mapwin() below will use these to transform the raw window
+// titles into common groups. For example, any title mentioning Google Chrome
+// may get mapped to just "Google Chrome".
+// these get applied in order they are specified, from top to bottom
+var title_mappings = [
+{pattern : /Google Chrome/, mapto : 'Google Chrome'},
+{pattern : /Firefox/, mapto : 'Google Chrome'}, // lol
+{pattern : /MATLAB/, mapto : 'Matlab'},
+{pattern : /Figure/, mapto : 'Matlab'},
+{pattern : /Inotebook/, mapto : 'INotebook'},
+{pattern : /.pdf/, mapto : 'Papers'},
+{pattern : /Gmail/, mapto : 'Gmail'},
+{pattern : /karpathy@/, mapto : 'Terminal'},
+{pattern : /Sublime Text/, mapto : 'SubText2'},
+{pattern : /\.js.*Sublime Text/, mapto : 'SubText2 Coding'},
+{pattern : /\.py.*Sublime Text/, mapto : 'SubText2 Coding'},
+{pattern : /\.html.*Sublime Text/, mapto : 'SubText2 Coding'},
+{pattern : /\.cpp.*Sublime Text/, mapto : 'SubText2 Coding'},
+{pattern : /\.h.*Sublime Text/, mapto : 'SubText2 Coding'},
+{pattern : /__LOCKEDSCREEN/, mapto : 'Locked Screen'}, // __LOCKEDSCREEN is a special token
+{pattern : /TeXworks/, mapto : 'Latex'},
+];
+
+// be very careful with ordering in the above because titles
+// get matched from up to down (see mapwin()), so put the more specific
+// window title rules on the bottom and more generic ones on top
+
 /*
 This function takes a raw window title w as string
 and outputs a more compact code, to be treated as a single
 unit during rendering. Every single possibility output from
-this function will have its own row and its own analysis,
-so it is recommended that only few possible outputs exist,
-and use of MISC category as shown in example is encouraged.
+this function will have its own row and its own analysis
 */
 function mapwin(w) {
-
-  // TODO: clean this up, use regex probably
-  var match = false;
-  if(w.indexOf("Gmail")>-1) { w = "Gmail"; match = true; }
-  if(w.indexOf("Inotebook")>-1) { w = "INotebook"; match = true; }
-  if(w.indexOf(".pdf")>-1) { w = "Papers"; match = true; }
-  if(w.indexOf("Google Chrome")>-1) { w = "Google Chrome"; match = true; }
-  if(w.indexOf("Firefox")>-1) { w = "Google Chrome"; match = true; }
-  if(w.indexOf("karpathy@")>-1) { w = "Terminal"; match = true; }
-  if(w.indexOf("MATLAB")>-1) { w = "Matlab"; match = true; }
-  if(w.indexOf("Figure")>-1) { w = "Matlab"; match = true; }
-  if(w.indexOf("Sublime Text")>-1) { 
-    if (w.indexOf(".js")>-1 || w.indexOf(".py")>-1 || w.indexOf(".html")>-1) {
-      w = "SubText2 Coding"; 
-    } else {
-      w = "SubText2"; 
+  var n = title_mappings.length;
+  var mapped_title = 'MISC';
+  for(var i=0;i<n;i++) {
+    var patmap = title_mappings[i];
+    if(patmap.pattern.test(w)) {
+      mapped_title = patmap.mapto;
     }
-    match = true; 
   }
-  if(w.indexOf("TeXworks")>-1) { w = "Latex"; match = true; }
-  if(w === '__LOCKEDSCREEN') { w = "Locked Screen"; match = true; }
-  // none of the rules matched? fold into MISC
-  if(!match) {
-    //console.log('folding into MISC: ' + w);
-    w = 'MISC'; // none of the rules applied
-  }
-  return w;
+  return mapped_title;
 }
 
+// These groups will be rendered together in the "barcode view". For example, I like
+// to group my work stuff and play stuff together.
 var display_groups = [];
-display_groups.push(["Gmail", "Google Chrome", "MISC", "Papers", "SubText2"]); // internet related
-display_groups.push(["Matlab", "SubText2 Coding", "INotebook", "Terminal"]); // work related
+display_groups.push(["Gmail", "Google Chrome", "MISC", "SubText2"]); // internet related
+display_groups.push(["Matlab", "SubText2 Coding", "INotebook", "Terminal", "Papers"]); // work related
 display_groups.push(["TeXworks"]); // paper writing related
 display_groups.push(["Locked Screen"]); // computer not being used 
 

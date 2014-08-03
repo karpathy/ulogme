@@ -76,7 +76,10 @@ h2 {
 }
 .skipdrawyes {
   text-decoration: line-through;
-  background-color: #FCC;
+  color: #999 !important;
+}
+.skipdrawno {
+  text-decoration: underline;
 }
 #keysummary {
   display: inline-block;
