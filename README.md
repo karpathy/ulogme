@@ -12,7 +12,7 @@ Keep track of your computer activity throughout the day: visualize your active w
 - Everything runs **completely locally**: none of your data is uploaded anywhere
 - **Beautiful, customizable UI** in HTML/CSS/JS (d3js).
 
-The project currently **only works on Ubuntu and OSX**.
+The project currently **only works on Ubuntu and OSX**, and uses new fancy **Promises** feature of ECMAScript 6. This might not be implemented in all browsers. My Chrome has it, but for example my Firefox doesn't.
 
 ## Demo
 
@@ -23,8 +23,9 @@ See a blog post (along with multiple screenshots) describing the project [here.]
 **To start recording**
 
 1. Clone the repository to some folder: `$ git clone https://github.com/karpathy/ulogme.git`
-2. If you're on Ubuntu, make sure you have the dependencies: `$ sudo apt-get install xdotool wmctrl`
+2. If you're on Ubuntu, make sure you have the dependencies: `$ sudo apt-get install xdotool wmctrl`. On Fedora, you may also need `sudo yum install gnome-screensaver`.
 3. `cd` inside and run `$ ./ulogme.sh` (note: this will ask you for sudo authentication which is required for `showkey` command). This will launch two scripts. One records the frequency of keystrokes and the other records active window titles. Both write their logs into log files in the `logs/` directory. Every log file is very simply just the unix time stamp followed by data, one per line.
+4. For **iOS** only: there might be an additional step where you have to go to System Preferences > Security & Privacy > Accessibility, and make sure that Terminal (or iTerm2, or whatever you use to launch ulogme) is checked. If it wasn't checked previously and you just checked it, you may need to restart ulogme. If you don't do this step, you might find that window logging works but keypress logging doesn't.
 
 **The user interface**
 
@@ -49,6 +50,7 @@ The user interface can switch between a single day view and an overview view by 
 - One Ubuntu user reported broken view with no data. On further inspection we found that the logs were corrupt. One of the lines in a file in `/logs` was, instead of looking as `{timestamp} {data}`  looked as `@@@@@@@{timestamp} {data}`, in other words an odd character was appended to the timestamp somehow. We manually erased these characters from the log file to fix the issue.
 - Legacy code note: if you used ulogme from before 28 July, you will have to run `$ python legacy_split_events.py` to convert your events files, once.
 - You may see *"address already in use"* if you try to run `python ulogme_serve.py`. Sometimes the system can get confused and takes a while to update what ports are being used. Use the optional argument to specify a different port, for example `python ulogme_serve.py 8124` and then go to `http://localhost:8124` instead, for example.
+- Overview page is blank. Are you sure your browser supports ECMAScript 6? Chrome should be fine, Firefox might not be, yet. 
 
 ## Contributing
 
