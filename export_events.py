@@ -51,6 +51,7 @@ def updateEvents():
 
   # extract all times. all log files of form {type}_{stamp}.txt
   ts = [int(x[x.find('_')+1:x.find('.txt')]) for x in L]
+  ts = list(set(ts))
   ts.sort()
 
   mint = min(ts)
@@ -62,7 +63,7 @@ def updateEvents():
   os.system('mkdir -p ' + RENDER_ROOT) # make sure output directory exists
   t = mint
   out_list = []
-  while t <= maxt:
+  for t in ts:
     t0 = t
     t1 = t0 + 60*60*24 # 24 hrs later
     fout = 'events_%d.json' % (t0, )
@@ -105,8 +106,6 @@ def updateEvents():
       eout = {'window_events': e1, 'keyfreq_events': e2, 'notes_events': e3, 'blog': e4}
       open(fwrite, 'w').write(json.dumps(eout))
       print 'wrote ' + fwrite
-
-    t = t1
 
   fwrite = os.path.join(RENDER_ROOT, 'export_list.json')
   open(fwrite, 'w').write(json.dumps(out_list))
