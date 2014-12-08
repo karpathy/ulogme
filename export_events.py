@@ -16,7 +16,7 @@ def loadEvents(fname):
   events = []
 
   try:
-    ws = open(fname, 'r').read().splitlines()
+    ws = open(fname, 'r').read().decode('utf-8').splitlines()
     events = []
     for w in ws:
       ix = w.find(' ') # find first space, that's where stamp ends
@@ -108,7 +108,7 @@ def updateEvents():
       print 'wrote ' + fwrite
 
   fwrite = os.path.join(RENDER_ROOT, 'export_list.json')
-  open(fwrite, 'w').write(json.dumps(out_list))
+  open(fwrite, 'w').write(json.dumps(out_list).encode('utf8'))
   print 'wrote ' + fwrite
 
 # invoked as script

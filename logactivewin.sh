@@ -1,5 +1,7 @@
 #!/bin/bash
 
+LANG=en_US.utf8
+
 # logs the active window titles over time. Logs are written 
 # in logs/windowX.txt, where X is unix timestamp of 7am of the
 # recording day. The logs are written if a window change event occurs
