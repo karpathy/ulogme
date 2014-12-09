@@ -5,6 +5,8 @@
 # in logs/keyfreqX.txt every 9 seconds, where X is unix timestamp of 7am of the
 # recording day.
 
+LANG=en_US.utf8
+
 helperfile="logs/keyfreqraw.txt" # temporary helper file
 
 mkdir -p logs
