@@ -17,8 +17,22 @@ last_write="0"
 lasttitle=""
 while true
 do
+	islocked=true
+	# Try to figure out which Desktop Manager is running and set the
+	# screensaver commands accordingly.
+	if [[ $GDMSESSION == 'xfce' ]]; then
+		# Assume XFCE folks use xscreensaver (the default).
+		screensaverstate=$(xscreensaver-command -time | cut -f2 -d: | cut -f2-3 -d' ')
+		if [[ $screensaverstate =~ "screen non-blanked" ]]; then islocked=false; fi
+	elif [[ $GDMSESSION == 'ubuntu' || $GDMSESSION == 'ubuntu-2d' || $GDMSESSION == 'gnome-shell' || $GDMSESSION == 'gnome-classic' || $GDMSESSION == 'gnome-fallback' || $GDMSESSION == 'cinnamon' ]]; then
+        # Assume the GNOME/Ubuntu/cinnamon folks are using gnome-screensaver.
+        screensaverstate=$(gnome-screensaver-command -q 2>&1 /dev/null)
+		if [[ $screensaverstate =~ .*inactive.* ]]; then islocked=false; fi
+	else
+		# If we can't find the screensaver, assume it's missing.
+		islocked=false
+	fi
 
-	islocked=true; if [[ $(gnome-screensaver-command -q) =~ .*inactive.* ]]; then islocked=false; fi
 	if [ $islocked = true ]; then
 		curtitle="__LOCKEDSCREEN"
 	else 
