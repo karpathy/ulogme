@@ -67,5 +67,12 @@ ulogme has three main parts:
 ### OSX code
 Things get a little ugly in OSX if you want to change anything with recording the log files because you have to recompile these portions any time you make any changes. It's ugly and it had to be done. However, if you're only interested in hacking with the UI, just change Javascript in `render` and no recompile is necessary, naturally.
 
+## Related projects
+
+* [selfspy](https://github.com/gurgeh/selfspy), Log everything you do on the computer, for statistics, future reference and all-around fun.
+* [arbtt](http://freecode.com/projects/arbtt), automatic rule-based time tracker.
+
+For more projects, [this question on Personal Productivity Stack Exchange](https://productivity.stackexchange.com/questions/13913/automatic-time-tracking-software-for-computer-work-for-windows-linux-mac) might be also worth a look.
+
 ## License
 MIT
